@@ -1,5 +1,5 @@
-// Generate matrix used to sync folders to external repos
-// .github/workflows/sync-repos.yaml
+# Generate matrix used to sync folders to external repos
+# .github/workflows/sync-repos.yaml
 
 locals {
   modules_replace_common = concat(flatten([for path, config in local.terraform_modules : [
@@ -26,7 +26,7 @@ locals {
     )
   }
 
-  // Order modules to execute oStack in last position
+  # Order modules to execute oStack in last position
   ordered_modules_list = concat(tolist(setsubtract(keys(local.terraform_modules), ["ostack"])), ["ostack"])
 
   modules_matrix = jsonencode({
@@ -49,11 +49,12 @@ locals {
   })
 }
 
-// Maintain the monorepo
+# Maintain the monorepo
 module "ostack_monorepo" {
   source = "../modules/repo-github"
 
   name                   = "oStack"
+  allow_merge_commit     = false
   archive_on_destroy     = true
   auto_init              = false
   branch_delete_on_merge = true
@@ -62,6 +63,7 @@ module "ostack_monorepo" {
   has_projects           = false
   has_wiki               = false
   homepage_url           = "https://oStack.io"
+  issue_labels           = local.issue_labels
   private                = false
 
   secrets = {

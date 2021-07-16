@@ -9,7 +9,7 @@ locals {
   }
 }
 
-// Create repos for Terraform modules
+# Create repos for Terraform modules
 module "terraform_modules" {
   source   = "../modules/repo-github"
   for_each = local.terraform_modules
