@@ -42,9 +42,3 @@ variable "tags" {
   type        = set(string)
   default     = []
 }
-
-
-
-
-
-
