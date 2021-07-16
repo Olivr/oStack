@@ -1,6 +1,5 @@
 // Generate matrix used to sync folders to external repos
-// .github/workflows/sync-modules.yaml
-// .github/workflows/sync-templates.yaml
+// .github/workflows/sync-repos.yaml
 
 locals {
   modules_replace_common = concat(flatten([for path, config in local.terraform_modules : [
@@ -54,12 +53,16 @@ locals {
 module "ostack_monorepo" {
   source = "../modules/repo-github"
 
-  name               = "oStack"
-  homepage_url       = "https://oStack.io"
-  auto_init          = false
-  has_projects       = false
-  has_wiki           = false
-  archive_on_destroy = true
+  name                   = "oStack"
+  archive_on_destroy     = true
+  auto_init              = false
+  branch_delete_on_merge = true
+  branch_protection      = true
+  branch_status_checks   = ["Run tests"]
+  has_projects           = false
+  has_wiki               = false
+  homepage_url           = "https://oStack.io"
+  private                = false
 
   secrets = {
     copybara_ssh_key = null

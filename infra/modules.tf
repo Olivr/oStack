@@ -15,12 +15,13 @@ module "terraform_modules" {
   for_each = local.terraform_modules
 
   name         = each.value.repo
-  description  = "Mirror of https://github.com/Olivr/oStack/tree/main/modules/${each.key}"
-  homepage_url = "https://oStack.io"
   auto_init    = false
+  description  = "Mirror of https://github.com/Olivr/oStack/tree/main/modules/${each.key}"
   has_issues   = false
   has_projects = false
   has_wiki     = false
+  homepage_url = "https://oStack.io"
+  private      = false
 
   secrets = {
     copybara_ssh_key = null
