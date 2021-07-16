@@ -2,11 +2,6 @@ name: Run tests
 on:
   push:
     branches: [main]
-    paths-ignore:
-      - "**/docs/**"
-      - "**.md"
-      - "infra/**"
-
   pull_request:
     branches: [main]
 

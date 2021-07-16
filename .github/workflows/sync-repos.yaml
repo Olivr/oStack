@@ -1,4 +1,4 @@
-name: Sync Terraform modules and repo templates to external repos
+name: Sync modules and templates to external repos
 concurrency:
   group: sync_repos
   cancel-in-progress: true
@@ -9,15 +9,11 @@ on:
     workflows: [Run tests]
     types: [completed]
 
-  push:
-    branches: [main]
-    paths: ["templates/**", "infra/**", ".github/workflows/sync-repos.yaml"]
-
 jobs:
   matrix:
     name: Get job matrix managed in Terraform # in /infra/monorepo.tf
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
     outputs:
       modules: ${{ steps.modules.outputs.matrix }}
       templates: ${{ steps.templates.outputs.matrix }}
@@ -33,7 +29,6 @@ jobs:
     name: Sync ${{ matrix.repo }}
     needs: matrix
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_run'
     strategy:
       fail-fast: false
       matrix: ${{fromJSON(needs.matrix.outputs.modules)}}
@@ -58,7 +53,6 @@ jobs:
     name: Sync ${{ matrix.repo }}
     needs: matrix
     runs-on: ubuntu-latest
-    if: github.event_name == 'push'
     strategy:
       fail-fast: false
       matrix: ${{fromJSON(needs.matrix.outputs.templates)}}
@@ -72,5 +66,6 @@ jobs:
           access_token: ${{ secrets.copybara_token }}
           sot_repo: ${{ github.repository_owner }}/oStack
           destination_repo: ${{ github.repository_owner }}/${{ matrix.repo }}
+          workflow: push
           push_include: "${{ matrix.path }}/**"
           push_move: ${{ matrix.path }}||
