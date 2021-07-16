@@ -40,7 +40,7 @@ variable "homepage_url" {
 variable "private" {
   description = "Set to `true` to create a private repository."
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "has_issues" {

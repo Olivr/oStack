@@ -3,11 +3,11 @@
 # ---------------------------------------------------------------------------------------------------------------------
 # Multi-providers
 # ---------------------------------------------------------------------------------------------------------------------
-locals {
-  configuration_repo = lookup({
-    github = module.configuration_repo_github
-  }, var.vcs_provider)
-}
+# locals {
+#   configuration_repo = lookup({
+#     github = module.configuration_repo_github
+#   }, var.vcs_provider)
+# }
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Computations

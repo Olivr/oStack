@@ -56,7 +56,7 @@ No modules.
 | <a name="input_homepage_url"></a> [homepage_url](#input_homepage_url) | URL of a page describing the project. | `string` | `null` | no |
 | <a name="input_is_template"></a> [is_template](#input_is_template) | Repository is a template repository. | `bool` | `false` | no |
 | <a name="input_issue_labels"></a> [issue_labels](#input_issue_labels) | Map of labels and their colors to add to the repository. <br>In the format { "label" = "#FFFFFF" } | `map(string)` | `{}` | no |
-| <a name="input_private"></a> [private](#input_private) | Set to `true` to create a private repository. | `bool` | `false` | no |
+| <a name="input_private"></a> [private](#input_private) | Set to `true` to create a private repository. | `bool` | `true` | no |
 | <a name="input_repo_exists"></a> [repo_exists](#input_repo_exists) | Set to `true` if the repository aalready exists. | `bool` | `false` | no |
 | <a name="input_secrets"></a> [secrets](#input_secrets) | Pass secrets. Set a secret to null to use the sensitive_inputs value corresponding to its key. | `map(string)` | `{}` | no |
 | <a name="input_sensitive_inputs"></a> [sensitive_inputs](#input_sensitive_inputs) | Pass sensitive inputs here. | `map(string)` | `{}` | no |
