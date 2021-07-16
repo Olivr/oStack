@@ -3,8 +3,8 @@ locals {
 
   terraform_modules = { for path in local.module_paths :
     path => {
-      repo   = path == "ostack" ? "terraform-github-oStack" : replace(path, "/^(.+)-([^-]+)$/", "terraform-$2-$1")
-      source = path == "ostack" ? "Olivr/oStack/github" : replace(path, "/^(.+)-([^-]+)$/", "Olivr/$1/$2")
+      repo   = path == "ostack" ? "terraform-oStack-oStack" : replace(path, "/^(.+)-([^-]+)$/", "terraform-$2-$1")
+      source = path == "ostack" ? "Olivr/oStack/oStack" : replace(path, "/^(.+)-([^-]+)$/", "Olivr/$1/$2")
     }
   }
 }
