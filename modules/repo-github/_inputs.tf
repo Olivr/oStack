@@ -12,7 +12,7 @@ variable "name" {
 # These parameters have reasonable defaults.
 # ---------------------------------------------------------------------------------------------------------------------
 variable "repo_exists" {
-  description = "Set to `true` if the repository aalready exists."
+  description = "Set to `true` if the repository already exists."
   type        = bool
   default     = false
 }

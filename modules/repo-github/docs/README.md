@@ -57,7 +57,7 @@ No modules.
 | <a name="input_is_template"></a> [is_template](#input_is_template) | Repository is a template repository. | `bool` | `false` | no |
 | <a name="input_issue_labels"></a> [issue_labels](#input_issue_labels) | Map of labels and their colors to add to the repository. <br>In the format { "label" = "FFFFFF" } | `map(string)` | `{}` | no |
 | <a name="input_private"></a> [private](#input_private) | Set to `true` to create a private repository. | `bool` | `true` | no |
-| <a name="input_repo_exists"></a> [repo_exists](#input_repo_exists) | Set to `true` if the repository aalready exists. | `bool` | `false` | no |
+| <a name="input_repo_exists"></a> [repo_exists](#input_repo_exists) | Set to `true` if the repository already exists. | `bool` | `false` | no |
 | <a name="input_secrets"></a> [secrets](#input_secrets) | Secrets to be added to the repo. You can pass sensitive values by setting the secret value to `sensitive::key` where `key` refers to a value in `sensitive_inputs`. | `map(string)` | `{}` | no |
 | <a name="input_sensitive_inputs"></a> [sensitive_inputs](#input_sensitive_inputs) | Values that should be marked as sensitive. Supported by `secrets`, `deploy_keys`. | `map(string)` | `{}` | no |
 | <a name="input_strict_files"></a> [strict_files](#input_strict_files) | Files to add to the repository's default branch. These files are tracked by Terraform to make sure their content always matches the configuration. | `map(string)` | `{}` | no |
