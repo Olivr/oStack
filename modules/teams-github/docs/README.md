@@ -31,7 +31,6 @@ No modules.
 | Name | Description | Type | Default | Required |
 | --- | --- | --- | --- | :-: |
 | <a name="input_teams"></a> [teams](#input_teams) | GitHub teams and their configuration. | <pre>map(object({<br> name = string<br> description = optional(string)<br> privacy = optional(string)<br> teams = optional(map(object({<br> name = string<br> description = optional(string)<br> privacy = optional(string)<br> teams = optional(map(object({<br> name = string<br> description = optional(string)<br> privacy = optional(string)<br> members = optional(set(object({<br> user = string,<br> role = string<br> })))<br> })))<br> members = optional(set(object({<br> user = string,<br> role = string<br> })))<br> })))<br> members = optional(set(object({<br> user = string,<br> role = string<br> })))<br> }))</pre> | n/a | yes |
-| <a name="input_enable"></a> [enable](#input_enable) | Enable this module. If set to false, no resources will be created. | `bool` | `true` | no |
 
 ## Outputs
 

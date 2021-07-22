@@ -41,7 +41,7 @@ locals {
 # ---------------------------------------------------------------------------------------------------------------------
 # Create parent teams
 resource "github_team" "parents" {
-  for_each = var.enable ? local.parents : {}
+  for_each = local.parents
 
   name        = each.value.name
   description = each.value.description
@@ -50,7 +50,7 @@ resource "github_team" "parents" {
 
 # Create children teams
 resource "github_team" "children" {
-  for_each = var.enable ? local.children : {}
+  for_each = local.children
 
   name           = each.value.name
   description    = each.value.description
@@ -60,7 +60,7 @@ resource "github_team" "children" {
 
 # Create grand children teams
 resource "github_team" "grandchildren" {
-  for_each = var.enable ? local.grand_children : {}
+  for_each = local.grand_children
 
   name           = each.value.name
   description    = each.value.description
@@ -70,7 +70,7 @@ resource "github_team" "grandchildren" {
 
 # Add users to teams
 resource "github_team_membership" "members" {
-  for_each = var.enable ? local.memberships : {}
+  for_each = local.memberships
 
   team_id  = each.value.team_id
   username = each.value.user
