@@ -22,8 +22,8 @@ No modules.
 | Name | Type |
 | --- | --- |
 | [tfe_variable.env_variables](https://registry.terraform.io/providers/hashicorp/tfe/latest/docs/resources/variable) | resource |
-| [tfe_variable.hcl](https://registry.terraform.io/providers/hashicorp/tfe/latest/docs/resources/variable) | resource |
-| [tfe_variable.secrets](https://registry.terraform.io/providers/hashicorp/tfe/latest/docs/resources/variable) | resource |
+| [tfe_variable.tf_vars](https://registry.terraform.io/providers/hashicorp/tfe/latest/docs/resources/variable) | resource |
+| [tfe_variable.tf_vars_hcl](https://registry.terraform.io/providers/hashicorp/tfe/latest/docs/resources/variable) | resource |
 | [tfe_workspace.workspace](https://registry.terraform.io/providers/hashicorp/tfe/latest/docs/resources/workspace) | resource |
 
 ## Inputs
@@ -35,14 +35,14 @@ No modules.
 | <a name="input_workspace_name"></a> [workspace_name](#input_workspace_name) | Terraform Cloud workspace name. | `string` | n/a | yes |
 | <a name="input_workspace_organization"></a> [workspace_organization](#input_workspace_organization) | Terraform Cloud organization name. | `string` | n/a | yes |
 | <a name="input_enable"></a> [enable](#input_enable) | Enable this module. If set to false, no resources will be created. | `bool` | `true` | no |
-| <a name="input_sensitive_inputs"></a> [sensitive_inputs](#input_sensitive_inputs) | Pass sensitive inputs here | `map(string)` | `{}` | no |
+| <a name="input_sensitive_inputs"></a> [sensitive_inputs](#input_sensitive_inputs) | Values that should be marked as sensitive. Supported by `workspace_tf_vars`, `workspace_tf_vars_hcl`, `workspace_env_vars`. | `map(string)` | `{}` | no |
 | <a name="input_vcs_branch_name"></a> [vcs_branch_name](#input_vcs_branch_name) | VCS repository branch to track. | `string` | `"main"` | no |
 | <a name="input_vcs_working_directory"></a> [vcs_working_directory](#input_vcs_working_directory) | VCS repository branch to track. | `string` | `""` | no |
 | <a name="input_workspace_auto_apply"></a> [workspace_auto_apply](#input_workspace_auto_apply) | Auto apply changes (Continuous delivery). | `bool` | `false` | no |
 | <a name="input_workspace_description"></a> [workspace_description](#input_workspace_description) | Terraform Cloud workspace description. | `string` | `null` | no |
-| <a name="input_workspace_hcl"></a> [workspace_hcl](#input_workspace_hcl) | Secrets to add to the workspace. Provide a list of sensitive_inputs keys. | `map(string)` | `{}` | no |
-| <a name="input_workspace_secrets"></a> [workspace_secrets](#input_workspace_secrets) | Secrets to add to the workspace. Provide a list of sensitive_inputs keys. | `map(string)` | `{}` | no |
-| <a name="input_workspace_variables"></a> [workspace_variables](#input_workspace_variables) | Environment variables to add to the workspace. Provide a list of sensitive_inputs keys. | `map(string)` | `{}` | no |
+| <a name="input_workspace_env_vars"></a> [workspace_env_vars](#input_workspace_env_vars) | Environment variables to add to the workspace. You can pass sensitive values by setting the secret value to `sensitive::key` where `key` refers to a value in `sensitive_inputs`. | `map(string)` | `{}` | no |
+| <a name="input_workspace_tf_vars"></a> [workspace_tf_vars](#input_workspace_tf_vars) | Secrets to add to the workspace. You can pass sensitive values by setting the secret value to `sensitive::key` where `key` refers to a value in `sensitive_inputs`. | `map(string)` | `{}` | no |
+| <a name="input_workspace_tf_vars_hcl"></a> [workspace_tf_vars_hcl](#input_workspace_tf_vars_hcl) | Terraform variables to add to the workspace. You can pass sensitive values by setting the secret value to `sensitive::key` where `key` refers to a value in `sensitive_inputs`. | `map(string)` | `{}` | no |
 
 ## Outputs
 

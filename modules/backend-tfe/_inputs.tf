@@ -39,33 +39,47 @@ variable "workspace_auto_apply" {
   default     = false
 }
 
-variable "workspace_secrets" {
-  description = "Secrets to add to the workspace. Provide a list of sensitive_inputs keys."
+variable "workspace_tf_vars" {
+  description = "Secrets to add to the workspace. You can pass sensitive values by setting the secret value to `sensitive::key` where `key` refers to a value in `sensitive_inputs`."
   type        = map(string)
   default     = {}
+  validation {
+    error_message = "Null values are not accepted. Use empty values instead."
+    condition     = alltrue([for v in values(var.workspace_tf_vars) : v != null])
+  }
 }
 
-variable "workspace_hcl" {
-  description = "Secrets to add to the workspace. Provide a list of sensitive_inputs keys."
+variable "workspace_tf_vars_hcl" {
+  description = "Terraform variables to add to the workspace. You can pass sensitive values by setting the secret value to `sensitive::key` where `key` refers to a value in `sensitive_inputs`."
   type        = map(string)
   default     = {}
+  validation {
+    error_message = "Null values are not accepted. Use empty values instead."
+    condition     = alltrue([for v in values(var.workspace_tf_vars_hcl) : v != null])
+  }
 }
 
-variable "workspace_variables" {
-  description = "Environment variables to add to the workspace. Provide a list of sensitive_inputs keys."
+variable "workspace_env_vars" {
+  description = "Environment variables to add to the workspace. You can pass sensitive values by setting the secret value to `sensitive::key` where `key` refers to a value in `sensitive_inputs`."
   type        = map(string)
   default     = {}
+  validation {
+    error_message = "Null values are not accepted. Use empty values instead."
+    condition     = alltrue([for v in values(var.workspace_env_vars) : v != null])
+  }
 }
 
 variable "vcs_repo_path" {
   description = "VCS repository path (<organization>/<repository>)."
   type        = string
 }
+
 variable "vcs_branch_name" {
   description = "VCS repository branch to track."
   type        = string
   default     = "main"
 }
+
 variable "vcs_working_directory" {
   description = "VCS repository branch to track."
   type        = string
@@ -73,8 +87,16 @@ variable "vcs_working_directory" {
 }
 
 variable "sensitive_inputs" {
-  description = "Pass sensitive inputs here"
+  description = "Values that should be marked as sensitive. Supported by `workspace_tf_vars`, `workspace_tf_vars_hcl`, `workspace_env_vars`."
   type        = map(string)
   sensitive   = true
   default     = {}
+  validation {
+    error_message = "Variable sensitive_inputs cannot be null."
+    condition     = var.sensitive_inputs != null
+  }
+  validation {
+    error_message = "Null values are not accepted. Use empty values instead."
+    condition     = alltrue([for v in values(var.sensitive_inputs) : v != null])
+  }
 }
