@@ -11,12 +11,6 @@ variable "name" {
 # Optional inputs
 # These parameters have reasonable defaults.
 # ---------------------------------------------------------------------------------------------------------------------
-variable "enable" {
-  description = "Enable this module. If set to false, no resources will be created."
-  type        = bool
-  default     = true
-}
-
 variable "repo_exists" {
   description = "Set to `true` if the repository aalready exists."
   type        = bool
@@ -149,6 +143,10 @@ variable "branch_status_checks" {
   description = "List of status checks required before merging pull requests."
   type        = list(string)
   default     = []
+  validation {
+    error_message = "Variable branch_status_checks cannot be null."
+    condition     = var.branch_status_checks != null
+  }
 }
 
 # Teams
@@ -177,36 +175,78 @@ variable "teams" {
 # Other resources
 
 variable "issue_labels" {
-  description = "Map of labels and their colors to add to the repository. \nIn the format { \"label\" = \"#FFFFFF\" }"
+  description = "Map of labels and their colors to add to the repository. \nIn the format { \"label\" = \"FFFFFF\" }"
   type        = map(string)
   default     = {}
+  validation {
+    error_message = "You must specify a color for each label."
+    condition     = alltrue([for v in values(var.issue_labels) : v != null && v != ""])
+  }
 }
 
 variable "secrets" {
-  description = "Pass secrets. Set a secret to null to use the sensitive_inputs value corresponding to its key."
+  description = "Secrets to be added to the repo. You can pass sensitive values by setting the secret value to `sensitive::key` where `key` refers to a value in `sensitive_inputs`."
   type        = map(string)
   default     = {}
-}
-
-variable "sensitive_inputs" {
-  description = "Pass sensitive inputs here."
-  type        = map(string)
-  sensitive   = true
-  default     = {}
+  validation {
+    error_message = "Null values are not accepted. Use empty values instead."
+    condition     = alltrue([for v in values(var.secrets) : v != null])
+  }
 }
 
 variable "deploy_keys" {
-  description = "Map of repository deploy keys. Set the `ssh_key` parameter to `null` to use the corresponding value in `sensitive_inputs` (store it in the format `my_key_ssh_key`)."
+  description = "Map of repository deploy keys. You can pass sensitive values by setting the `ssh_key` value to `sensitive::key` where `key` refers to a value in `sensitive_inputs`."
+  default     = {}
   type = map(object({
     title     = string
     ssh_key   = string
     read_only = optional(bool)
   }))
-  default = {}
+  validation {
+    error_message = "Null values are not accepted for `ssh_key` and `title`."
+    condition     = alltrue([for v in values(var.deploy_keys) : v.title != null && v.ssh_key != null])
+  }
+}
+
+variable "strict_files" {
+  description = "Files to add to the repository's default branch. These files are tracked by Terraform to make sure their content always matches the configuration."
+  type        = map(string)
+  default     = {}
+  validation {
+    error_message = "Variable strict_files cannot be null."
+    condition     = var.strict_files != null
+  }
+  validation {
+    error_message = "Null values are not accepted. Use empty values instead."
+    condition     = alltrue([for v in values(var.strict_files) : v != null])
+  }
 }
 
 variable "files" {
-  description = "Files to add to the repository's default branch."
+  description = "Files to add to the repository's default branch. These files can be modified outside of Terraform."
   type        = map(string)
   default     = {}
+  validation {
+    error_message = "Variable files cannot be null."
+    condition     = var.files != null
+  }
+  validation {
+    error_message = "Null values are not accepted. Use empty values instead."
+    condition     = alltrue([for v in values(var.files) : v != null])
+  }
+}
+
+variable "sensitive_inputs" {
+  description = "Values that should be marked as sensitive. Supported by `secrets`, `deploy_keys`."
+  type        = map(string)
+  sensitive   = true
+  default     = {}
+  validation {
+    error_message = "Variable sensitive_inputs cannot be null."
+    condition     = var.sensitive_inputs != null
+  }
+  validation {
+    error_message = "Null values are not accepted. Use empty values instead."
+    condition     = alltrue([for v in values(var.sensitive_inputs) : v != null])
+  }
 }

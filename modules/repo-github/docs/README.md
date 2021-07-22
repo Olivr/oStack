@@ -27,9 +27,10 @@ No modules.
 | [github_repository.repo](https://registry.terraform.io/providers/integrations/github/latest/docs/resources/repository) | resource |
 | [github_repository_deploy_key.deploy_keys](https://registry.terraform.io/providers/integrations/github/latest/docs/resources/repository_deploy_key) | resource |
 | [github_repository_file.files](https://registry.terraform.io/providers/integrations/github/latest/docs/resources/repository_file) | resource |
-| [github_repository_file.initial_files](https://registry.terraform.io/providers/integrations/github/latest/docs/resources/repository_file) | resource |
+| [github_repository_file.strict_files](https://registry.terraform.io/providers/integrations/github/latest/docs/resources/repository_file) | resource |
 | [github_team_repository.permissions](https://registry.terraform.io/providers/integrations/github/latest/docs/resources/team_repository) | resource |
 | [github_repository.repo](https://registry.terraform.io/providers/integrations/github/latest/docs/data-sources/repository) | data source |
+| [github_user.current](https://registry.terraform.io/providers/integrations/github/latest/docs/data-sources/user) | data source |
 
 ## Inputs
 
@@ -46,20 +47,20 @@ No modules.
 | <a name="input_branch_protection_enforce_admins"></a> [branch_protection_enforce_admins](#input_branch_protection_enforce_admins) | Enforce admins on branch protection. | `bool` | `true` | no |
 | <a name="input_branch_review_count"></a> [branch_review_count](#input_branch_review_count) | Number of required reviews before merging pull requests. | `number` | `0` | no |
 | <a name="input_branch_status_checks"></a> [branch_status_checks](#input_branch_status_checks) | List of status checks required before merging pull requests. | `list(string)` | `[]` | no |
-| <a name="input_deploy_keys"></a> [deploy_keys](#input_deploy_keys) | Map of repository deploy keys. Set the `ssh_key` parameter to `null` to use the corresponding value in `sensitive_inputs` (store it in the format `my_key_ssh_key`). | <pre>map(object({<br> title = string<br> ssh_key = string<br> read_only = optional(bool)<br> }))</pre> | `{}` | no |
+| <a name="input_deploy_keys"></a> [deploy_keys](#input_deploy_keys) | Map of repository deploy keys. You can pass sensitive values by setting the `ssh_key` value to `sensitive::key` where `key` refers to a value in `sensitive_inputs`. | <pre>map(object({<br> title = string<br> ssh_key = string<br> read_only = optional(bool)<br> }))</pre> | `{}` | no |
 | <a name="input_description"></a> [description](#input_description) | A description of the repository. | `string` | `null` | no |
-| <a name="input_enable"></a> [enable](#input_enable) | Enable this module. If set to false, no resources will be created. | `bool` | `true` | no |
-| <a name="input_files"></a> [files](#input_files) | Files to add to the repository's default branch. | `map(string)` | `{}` | no |
+| <a name="input_files"></a> [files](#input_files) | Files to add to the repository's default branch. These files can be modified outside of Terraform. | `map(string)` | `{}` | no |
 | <a name="input_has_issues"></a> [has_issues](#input_has_issues) | Set to `true` to enable the GitHub Issues features on the repository. | `bool` | `true` | no |
 | <a name="input_has_projects"></a> [has_projects](#input_has_projects) | Set to `true` to enable the GitHub Projects features on the repository. | `bool` | `true` | no |
 | <a name="input_has_wiki"></a> [has_wiki](#input_has_wiki) | Set to `true` to enable the GitHub Wiki features on the repository. | `bool` | `null` | no |
 | <a name="input_homepage_url"></a> [homepage_url](#input_homepage_url) | URL of a page describing the project. | `string` | `null` | no |
 | <a name="input_is_template"></a> [is_template](#input_is_template) | Repository is a template repository. | `bool` | `false` | no |
-| <a name="input_issue_labels"></a> [issue_labels](#input_issue_labels) | Map of labels and their colors to add to the repository. <br>In the format { "label" = "#FFFFFF" } | `map(string)` | `{}` | no |
+| <a name="input_issue_labels"></a> [issue_labels](#input_issue_labels) | Map of labels and their colors to add to the repository. <br>In the format { "label" = "FFFFFF" } | `map(string)` | `{}` | no |
 | <a name="input_private"></a> [private](#input_private) | Set to `true` to create a private repository. | `bool` | `true` | no |
 | <a name="input_repo_exists"></a> [repo_exists](#input_repo_exists) | Set to `true` if the repository aalready exists. | `bool` | `false` | no |
-| <a name="input_secrets"></a> [secrets](#input_secrets) | Pass secrets. Set a secret to null to use the sensitive_inputs value corresponding to its key. | `map(string)` | `{}` | no |
-| <a name="input_sensitive_inputs"></a> [sensitive_inputs](#input_sensitive_inputs) | Pass sensitive inputs here. | `map(string)` | `{}` | no |
+| <a name="input_secrets"></a> [secrets](#input_secrets) | Secrets to be added to the repo. You can pass sensitive values by setting the secret value to `sensitive::key` where `key` refers to a value in `sensitive_inputs`. | `map(string)` | `{}` | no |
+| <a name="input_sensitive_inputs"></a> [sensitive_inputs](#input_sensitive_inputs) | Values that should be marked as sensitive. Supported by `secrets`, `deploy_keys`. | `map(string)` | `{}` | no |
+| <a name="input_strict_files"></a> [strict_files](#input_strict_files) | Files to add to the repository's default branch. These files are tracked by Terraform to make sure their content always matches the configuration. | `map(string)` | `{}` | no |
 | <a name="input_team_permissions"></a> [team_permissions](#input_team_permissions) | Teams access levels. | <pre>object({<br> pull = optional(list(string))<br> triage = optional(list(string))<br> push = optional(list(string))<br> maintain = optional(list(string))<br> admin = optional(list(string))<br> })</pre> | `{}` | no |
 | <a name="input_teams"></a> [teams](#input_teams) | Map of GitHub teams. | <pre>map(object({<br> id = string<br> node_id = string<br> }))</pre> | `{}` | no |
 | <a name="input_template"></a> [template](#input_template) | Template to use when creating repository. | `string` | `null` | no |

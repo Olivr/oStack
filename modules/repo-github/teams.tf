@@ -16,7 +16,7 @@ locals {
 # Resources
 # ---------------------------------------------------------------------------------------------------------------------
 resource "github_team_repository" "permissions" {
-  for_each = var.enable ? local.teams_to_create : {}
+  for_each = local.teams_to_create
 
   repository = local.repo.name
   team_id    = var.teams[each.value.team].id

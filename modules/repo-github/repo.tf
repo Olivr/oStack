@@ -5,10 +5,10 @@
 locals {
   repo = {
     name           = var.name
-    full_name      = var.enable ? (var.repo_exists ? data.github_repository.repo[0].full_name : github_repository.repo[0].full_name) : ""
-    html_url       = var.enable ? (var.repo_exists ? data.github_repository.repo[0].html_url : github_repository.repo[0].html_url) : ""
-    node_id        = var.enable ? (var.repo_exists ? data.github_repository.repo[0].node_id : github_repository.repo[0].node_id) : ""
-    default_branch = var.enable ? (var.repo_exists ? data.github_repository.repo[0].default_branch : github_repository.repo[0].default_branch) : ""
+    full_name      = var.repo_exists ? data.github_repository.repo[0].full_name : github_repository.repo[0].full_name
+    html_url       = var.repo_exists ? data.github_repository.repo[0].html_url : github_repository.repo[0].html_url
+    node_id        = var.repo_exists ? data.github_repository.repo[0].node_id : github_repository.repo[0].node_id
+    default_branch = var.repo_exists ? data.github_repository.repo[0].default_branch : github_repository.repo[0].default_branch
   }
 }
 
@@ -17,13 +17,13 @@ locals {
 # ---------------------------------------------------------------------------------------------------------------------
 # Fetch repository if it exists
 data "github_repository" "repo" {
-  count = var.enable && var.repo_exists ? 1 : 0
+  count = var.repo_exists ? 1 : 0
   name  = var.name
 }
 
 # Create repository if it doesn't exist
 resource "github_repository" "repo" {
-  count = var.enable && var.repo_exists == false ? 1 : 0
+  count = var.repo_exists ? 0 : 1
 
   name                   = var.name
   description            = var.description
@@ -43,7 +43,7 @@ resource "github_repository" "repo" {
   delete_branch_on_merge = var.branch_delete_on_merge
 
   dynamic "template" {
-    for_each = var.template == null ? [] : [1]
+    for_each = var.template == null || var.template == "" ? [] : [1]
     content {
       owner      = split("/", var.template)[0]
       repository = split("/", var.template)[1]
@@ -51,7 +51,6 @@ resource "github_repository" "repo" {
   }
 
   lifecycle {
-    # Really hesitant on this opinion... Hopefully Terraform will allow to dynamically set this one day so we can give the option back to the user
-    # ignore_changes = [description, topics]
+    ignore_changes = [template]
   }
 }

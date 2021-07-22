@@ -1,10 +1,8 @@
 # ---------------------------------------------------------------------------------------------------------------------
 # Resources
 # ---------------------------------------------------------------------------------------------------------------------
-# If branch protection is enabled, track changes
-resource "github_repository_file" "files" {
-  for_each   = var.enable && var.branch_protection == false ? var.files : {}
-  depends_on = [github_branch_protection.branch]
+resource "github_repository_file" "strict_files" {
+  for_each = var.strict_files
 
   repository          = local.repo.name
   branch              = local.repo.default_branch
@@ -13,9 +11,8 @@ resource "github_repository_file" "files" {
   overwrite_on_create = true
 }
 
-# If branch protection is enabled, only commit before enabling and do not track changes
-resource "github_repository_file" "initial_files" {
-  for_each = var.enable && var.branch_protection ? var.files : {}
+resource "github_repository_file" "files" {
+  for_each = var.files
 
   repository          = local.repo.name
   branch              = local.repo.default_branch
