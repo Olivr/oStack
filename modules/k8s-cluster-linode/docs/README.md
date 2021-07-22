@@ -28,7 +28,6 @@ No modules.
 | Name | Description | Type | Default | Required |
 | --- | --- | --- | --- | :-: |
 | <a name="input_name"></a> [name](#input_name) | Cluster name. | `string` | n/a | yes |
-| <a name="input_enable"></a> [enable](#input_enable) | Enable this module. If set to false, no resources will be created. | `bool` | `true` | no |
 | <a name="input_kube_version"></a> [kube_version](#input_kube_version) | Kubernetes version ([available choices](https://developers.linode.com/api/v4/lke-versions)). | `string` | `"1.21"` | no |
 | <a name="input_nodes"></a> [nodes](#input_nodes) | Map of node types and their associated count ([available choices](https://api.linode.com/v4/linode/types)). <br>Eg. { "g6-standard-1" = 12, "g6-standard-4" = 3 } | `map(number)` | <pre>{<br> "g6-standard-1": 1<br>}</pre> | no |
 | <a name="input_region"></a> [region](#input_region) | Region name ([available choices](https://developers.linode.com/api/v4/regions)). | `string` | `"us-central"` | no |

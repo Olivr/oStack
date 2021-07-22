@@ -11,12 +11,6 @@ variable "name" {
 # Optional inputs
 # These parameters have reasonable defaults.
 # ---------------------------------------------------------------------------------------------------------------------
-variable "enable" {
-  description = "Enable this module. If set to false, no resources will be created."
-  type        = bool
-  default     = true
-}
-
 variable "region" {
   description = "Region name ([available choices](https://developers.linode.com/api/v4/regions))."
   type        = string
