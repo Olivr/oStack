@@ -37,10 +37,10 @@ No modules.
 | Name | Description | Type | Default | Required |
 | --- | --- | --- | --- | :-: |
 | <a name="input_cluster_path"></a> [cluster_path](#input_cluster_path) | Path to synchronize Flux with this cluster | `string` | n/a | yes |
-| <a name="input_deploy_keys"></a> [deploy_keys](#input_deploy_keys) | Deploy keys to add. You can pass sensitive values by setting the `private_key` value to `sensitive::key` where `key` refers to a value in `sensitive_inputs`. | <pre>map(object({<br> name = string<br> namespace = string<br> known_hosts = string<br> private_key = string<br> public_key = string<br> }))</pre> | n/a | yes |
-| <a name="input_secrets"></a> [secrets](#input_secrets) | Secrets to add. You can pass sensitive values by setting any value in `data` to `sensitive::key` where `key` refers to a value in `sensitive_inputs`. | <pre>map(object({<br> name = string<br> namespace = string<br> data = map(string)<br> }))</pre> | n/a | yes |
 | <a name="input_base_dir"></a> [base_dir](#input_base_dir) | Name of the base directory. | `string` | `"_base"` | no |
+| <a name="input_deploy_keys"></a> [deploy_keys](#input_deploy_keys) | Deploy keys to add. You can pass sensitive values by setting the `private_key` value to `sensitive::key` where `key` refers to a value in `sensitive_inputs`. | <pre>map(object({<br> name = string<br> namespace = string<br> known_hosts = string<br> private_key = string<br> public_key = string<br> }))</pre> | `{}` | no |
 | <a name="input_namespaces"></a> [namespaces](#input_namespaces) | Namespaces to create | `set(string)` | `[]` | no |
+| <a name="input_secrets"></a> [secrets](#input_secrets) | Secrets to add. You can pass sensitive values by setting any value in `data` to `sensitive::key` where `key` refers to a value in `sensitive_inputs`. | <pre>map(object({<br> name = string<br> namespace = string<br> data = map(string)<br> }))</pre> | `{}` | no |
 | <a name="input_sensitive_inputs"></a> [sensitive_inputs](#input_sensitive_inputs) | Values that should be marked as sensitive. Supported by `secrets`, `deploy_keys`. | `map(string)` | `{}` | no |
 
 ## Outputs

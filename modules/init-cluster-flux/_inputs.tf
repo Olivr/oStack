@@ -1,3 +1,16 @@
+# ---------------------------------------------------------------------------------------------------------------------
+# Required inputs
+# These parameters must be specified.
+# ---------------------------------------------------------------------------------------------------------------------
+variable "cluster_path" {
+  description = "Path to synchronize Flux with this cluster"
+  type        = string
+}
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Optional inputs
+# These parameters have reasonable defaults.
+# ---------------------------------------------------------------------------------------------------------------------
 variable "namespaces" {
   description = "Namespaces to create"
   type        = set(string)
@@ -13,6 +26,7 @@ variable "deploy_keys" {
     private_key = string
     public_key  = string
   }))
+  default = {}
 }
 
 variable "secrets" {
@@ -22,11 +36,7 @@ variable "secrets" {
     namespace = string
     data      = map(string)
   }))
-}
-
-variable "cluster_path" {
-  description = "Path to synchronize Flux with this cluster"
-  type        = string
+  default = {}
 }
 
 variable "base_dir" {
