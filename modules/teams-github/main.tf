@@ -29,11 +29,22 @@ locals {
   teams_created = merge(github_team.parents, github_team.children, github_team.grandchildren)
 
   # Users to be added to teams
-  memberships = merge(flatten([for team_id, config in merge(local.parents, local.children, local.grand_children) :
-    { for member in config.members :
-      "${team_id}-${member.role}-${member.user}" => merge(member, { team_id = local.teams_created[team_id].id }) if lookup(local.teams_created, "team_id", null) != null
-    } if lookup(config, "members", {}) != {} && lookup(config, "members", null) != null
+  prepare_memberships = merge(flatten([for team_id, config in merge(local.parents, local.children, local.grand_children) :
+    { for member in try(config.members, {}) :
+      "${team_id}-${member.role}-${member.user}" => merge(
+        member,
+        { team_id = local.teams_created[team_id].id }
+      )
+    }
   ])...)
+
+  # Process special values
+  memberships = { for id, member in local.prepare_memberships :
+    id => member.user != "data::current_user" ? member : merge(
+      member,
+      { user = data.github_user.current.login }
+    )
+  }
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -43,7 +54,7 @@ locals {
 resource "github_team" "parents" {
   for_each = local.parents
 
-  name        = each.value.name
+  name        = each.value.title
   description = each.value.description
   privacy     = each.value.privacy
 }
@@ -52,7 +63,7 @@ resource "github_team" "parents" {
 resource "github_team" "children" {
   for_each = local.children
 
-  name           = each.value.name
+  name           = each.value.title
   description    = each.value.description
   privacy        = each.value.privacy
   parent_team_id = github_team.parents[each.value.parent].id
@@ -62,7 +73,7 @@ resource "github_team" "children" {
 resource "github_team" "grandchildren" {
   for_each = local.grand_children
 
-  name           = each.value.name
+  name           = each.value.title
   description    = each.value.description
   privacy        = each.value.privacy
   parent_team_id = github_team.children[each.value.parent].id
@@ -72,7 +83,18 @@ resource "github_team" "grandchildren" {
 resource "github_team_membership" "members" {
   for_each = local.memberships
 
+  depends_on = [
+    github_team.parents,
+    github_team.children,
+    github_team.grandchildren
+  ]
+
   team_id  = each.value.team_id
   username = each.value.user
   role     = each.value.role
+}
+
+# Get current user
+data "github_user" "current" {
+  username = ""
 }

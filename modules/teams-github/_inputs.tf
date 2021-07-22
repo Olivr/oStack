@@ -3,17 +3,17 @@
 # These parameters must be specified.
 # ---------------------------------------------------------------------------------------------------------------------
 variable "teams" {
-  description = "GitHub teams and their configuration."
+  description = "GitHub teams and their configuration. You can use the special value `data::current_user` in the `user` field to add the current GitHub user to a team."
   type = map(object({
-    name        = string
+    title       = string
     description = optional(string)
     privacy     = optional(string)
     teams = optional(map(object({
-      name        = string
+      title       = string
       description = optional(string)
       privacy     = optional(string)
       teams = optional(map(object({
-        name        = string
+        title       = string
         description = optional(string)
         privacy     = optional(string)
         members = optional(set(object({
