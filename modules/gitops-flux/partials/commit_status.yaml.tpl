@@ -2,25 +2,35 @@
 apiVersion: notification.toolkit.fluxcd.io/v1beta1
 kind: Provider
 metadata:
-  name: ${name}
-  namespace: ${namespace}
+  name: "${name}"
+  namespace: flux-system
+%{if namespace != "flux-system" ~}
+  labels:
+    toolkit.fluxcd.io/tenant: "${namespace}"
+%{endif~}
 spec:
-  type: ${provider}
-  address: ${repo_http_url}
+  type: "${provider}"
+  address: "${repo_http_url}"
   secretRef:
-    name: ${secret_name}
+    name: "${secret_name}"
 
 ---
 apiVersion: notification.toolkit.fluxcd.io/v1beta1
 kind: Alert
 metadata:
-  name: ${name}
-  namespace: ${namespace}
+  name: "${name}"
+  namespace: flux-system
+%{if namespace != "flux-system" ~}
+  labels:
+    toolkit.fluxcd.io/tenant: "${namespace}"
+%{endif~}
 spec:
   providerRef:
-    name: ${name}
+    name: "${name}"
   eventSeverity: info
   eventSources:
     - kind: Kustomization
       name: "*"
-      %{ if source_namespace != "" }namespace: ${source_namespace}%{ endif ~}
+%{ if namespace != "flux-system" ~}
+      namespace: "${namespace}"
+%{ endif ~}

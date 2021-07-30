@@ -5,8 +5,9 @@
 variable "namespaces" {
   description = "Namespaces to be used as isolated tenants."
   type = map(object({
-    name         = string
-    environments = set(string)
+    name             = string
+    environments     = set(string)
+    tenant_isolation = bool
     repos = map(object({
       name = string
       type = string
@@ -33,10 +34,16 @@ variable "environments" {
 variable "global" {
   description = "Global ops repo configuration."
   type = object({
-    provider            = string
-    http_url            = string
-    ssh_url             = string
-    branch_default_name = string
+    vcs = object({
+      provider            = string
+      http_url            = string
+      ssh_url             = string
+      branch_default_name = string
+    })
+    backends = map(object({
+      combine_environments  = bool
+      vcs_working_directory = string
+    }))
   })
 }
 
@@ -50,14 +57,14 @@ variable "base_dir" {
   default     = "_base"
   validation {
     condition     = var.base_dir != null
-    error_message = "You must specify a the name of the base directory."
+    error_message = "You must specify the name of the base directory."
   }
 }
 
 variable "infra_dir" {
   description = "Name of the infrastructure directory."
   type        = string
-  default     = "_infra"
+  default     = "_init"
   validation {
     condition     = var.infra_dir != null
     error_message = "You must specify a the name of the infrastructure directory."
@@ -88,4 +95,36 @@ variable "cluster_init_module" {
     condition     = var.cluster_init_module != null
     error_message = "You must specify a module source. If you want to use a local module, you should specify `cluster_init_path` instead."
   }
+}
+
+variable "local_var_template" {
+  description = "JSON Terraform variables template with empty values."
+  type        = string
+  default     = ""
+  validation {
+    condition     = var.local_var_template != null
+    error_message = "Variable local_var_template cannot be null, use an empty value instead."
+  }
+}
+
+variable "deploy_keys" {
+  description = "Deploy keys to add to each cluster at bootstrap time. You can pass sensitive values by setting the `private_key` value to `sensitive::key` where `key` refers to a value in `sensitive_inputs` (defined at run time in the infrastructure backend)."
+  type = map(map(object({
+    name        = string
+    namespace   = string
+    known_hosts = string
+    private_key = string
+    public_key  = string
+  })))
+  default = {}
+}
+
+variable "secrets" {
+  description = "Secrets to add to each cluster at bootstrap time. You can pass sensitive values by setting the `private_key` value to `sensitive::key` where `key` refers to a value in `sensitive_inputs` (defined at run time in the infrastructure backend)."
+  type = map(map(object({
+    name      = string
+    namespace = string
+    data      = map(string)
+  })))
+  default = {}
 }

@@ -20,6 +20,13 @@ locals {
     (namespace.name) => namespace if anytrue([for repo in namespace.repos : repo.type == "ops"])
   }
 
+  # If a namespace doesnt innclude certain environments, make sure they are excluded
+  environment_tenants = { for id, env in var.environments :
+    env.name => [for tenant in local.tenants :
+      tenant.name if contains(tenant.environments, id)
+    ]
+  }
+
   # Only GitHub has been tested (Flux supports more though https://fluxcd.io/docs/components/notification/provider/#git-commit-status)
   # commit_status_notifications = ["github", "gitlab", "bitbucket", "azuredevops"]
   commit_status_providers = ["github"]

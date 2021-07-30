@@ -2,15 +2,22 @@
 # Main variables
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
-  gitops = merge(
-    module.gitops_flux
-  )["main"]
+  backends_namespaces = merge(
+    module.backends_namespaces_tfe
+  )
+
+  backends_globalops = merge(
+    module.backends_globalops_tfe
+  )
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Multi-providers
-# Only static variables
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
-  gitops_flux = var.gitops_default_provider == "flux" ? toset(["main"]) : toset([])
+  backends_namespaces_tfe = { for id, backend in local.namespaces_backends_create :
+    id => backend if backend.provider == "tfe"
+  }
+
+  backends_globalops_tfe = var.backend_default_provider == "tfe" ? toset(local.globalops_backend_create) : toset([])
 }

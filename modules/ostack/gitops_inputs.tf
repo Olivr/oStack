@@ -4,7 +4,7 @@
 # ---------------------------------------------------------------------------------------------------------------------
 # Gitops
 variable "gitops_default_provider" {
-  description = "Default backend provider."
+  description = "Default GitOps provider."
   type        = string
   default     = "flux"
 

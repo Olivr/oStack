@@ -15,7 +15,8 @@ locals {
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
   gitops_configuration_defaults_base = {
-    base_dir = "_base"
+    base_dir         = "_ostack"
+    tenant_isolation = true
   }
 
   gitops_configuration_defaults = {
