@@ -1,10 +1,10 @@
 # ---------------------------------------------------------------------------------------------------------------------
 # Outputs
 # ---------------------------------------------------------------------------------------------------------------------
-# output "globalconfig" {
-#   description = "Global configuration repo(s)."
-#   value       = local.globalconfig_output
-# }
+output "globalconfig" {
+  description = "Global configuration repo(s)."
+  value       = local.globalconfig_output
+}
 
 output "globalconfig_sensitive" {
   description = "Global configuration repo(s) sensitive values."

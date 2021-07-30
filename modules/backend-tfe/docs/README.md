@@ -34,7 +34,6 @@ No modules.
 | <a name="input_vcs_repo_path"></a> [vcs_repo_path](#input_vcs_repo_path) | VCS repository path (<organization>/<repository>). | `string` | n/a | yes |
 | <a name="input_workspace_name"></a> [workspace_name](#input_workspace_name) | Terraform Cloud workspace name. | `string` | n/a | yes |
 | <a name="input_workspace_organization"></a> [workspace_organization](#input_workspace_organization) | Terraform Cloud organization name. | `string` | n/a | yes |
-| <a name="input_enable"></a> [enable](#input_enable) | Enable this module. If set to false, no resources will be created. | `bool` | `true` | no |
 | <a name="input_sensitive_inputs"></a> [sensitive_inputs](#input_sensitive_inputs) | Values that should be marked as sensitive. Supported by `workspace_tf_vars`, `workspace_tf_vars_hcl`, `workspace_env_vars`. | `map(string)` | `{}` | no |
 | <a name="input_vcs_branch_name"></a> [vcs_branch_name](#input_vcs_branch_name) | VCS repository branch to track. | `string` | `"main"` | no |
 | <a name="input_vcs_trigger_paths"></a> [vcs_trigger_paths](#input_vcs_trigger_paths) | VCS repository branch to track. | `set(string)` | `[]` | no |

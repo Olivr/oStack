@@ -14,8 +14,6 @@ locals {
     }
   ]...)
 
-  namespaces_has_split_infra = !anytrue(flatten([for repo in local.namespaces_repos_static : values(repo.backends).*.combine_environments]))
-
   # Dynamic
   namespaces_repos_dynamic = { for repo_id, repo in local.namespaces_repos_static :
     repo_id => {

@@ -61,9 +61,6 @@ locals {
       repo.vcs.provider if repo.vcs.branch_protection
     ]
   ])))
-
-  # Create config repo if branch protection is enabled on at least one repo
-  globalconfig_must_create = length(local.global_config_providers) > 0
 }
 
 # ---------------------------------------------------------------------------------------------------------------------

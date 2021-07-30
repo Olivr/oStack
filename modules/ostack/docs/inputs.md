@@ -64,6 +64,7 @@
 
 | Name | Description |
 | --- | --- |
+| <a name="output_globalconfig"></a> [globalconfig](#output_globalconfig) | Global configuration repo(s). |
 | <a name="output_globalconfig_sensitive"></a> [globalconfig_sensitive](#output_globalconfig_sensitive) | Global configuration repo(s) sensitive values. |
 
 <!-- END_TF_DOCS -->

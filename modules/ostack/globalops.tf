@@ -4,8 +4,6 @@
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
   # Static
-  globalops_vcs_create = [1]
-
   globalops_backend_create = keys(local.globalops_static.backends)
 
   globalops_static = merge(
@@ -35,17 +33,6 @@ locals {
       }
     }
   }
-
-  globalops = merge(
-    local.globalops_static,
-    local.globalops_dynamic,
-    {
-      vcs = merge(
-        local.globalops_static.vcs,
-        local.globalops_dynamic.vcs
-      )
-    }
-  )
 }
 
 # ---------------------------------------------------------------------------------------------------------------------

@@ -21,12 +21,6 @@ variable "tfe_oauth_token_id" {
 # Optional inputs
 # These parameters have reasonable defaults.
 # ---------------------------------------------------------------------------------------------------------------------
-variable "enable" {
-  description = "Enable this module. If set to false, no resources will be created."
-  type        = bool
-  default     = true
-}
-
 variable "workspace_description" {
   description = "Terraform Cloud workspace description."
   type        = string

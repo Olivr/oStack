@@ -3,7 +3,7 @@
 # ---------------------------------------------------------------------------------------------------------------------
 output "kube_config" {
   description = "Kubernetes credentials file."
-  value       = digitalocean_kubernetes_cluster.cluster.kube_config.0.raw_config
+  value       = digitalocean_kubernetes_cluster.cluster.kube_config[0].raw_config
   sensitive   = true
 }
 
@@ -24,12 +24,12 @@ output "kube_host" {
 
 output "kube_ca_certificate" {
   description = "Kubernetes certificate authority certificate."
-  value       = base64decode(digitalocean_kubernetes_cluster.cluster.kube_config.0.cluster_ca_certificate)
+  value       = base64decode(digitalocean_kubernetes_cluster.cluster.kube_config[0].cluster_ca_certificate)
   sensitive   = true
 }
 
 output "kube_token" {
   description = "Kubernetes authentication token."
-  value       = digitalocean_kubernetes_cluster.cluster.kube_config.0.token
+  value       = digitalocean_kubernetes_cluster.cluster.kube_config[0].token
   sensitive   = true
 }

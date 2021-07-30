@@ -44,8 +44,3 @@ resource "github_branch_protection" "branch" {
     }
   }
 }
-
-# Detect current user.
-data "github_user" "current" {
-  username = ""
-}
