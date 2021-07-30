@@ -1,0 +1,114 @@
+name: CI Tests
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  matrix:
+    name: Generate e2e test matrix
+    runs-on: ubuntu-latest
+    outputs:
+      clusters: ${{ steps.clusters.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v2
+      - id: clusters
+        run: echo "::set-output name=matrix::[$(clusters=($(find */* -type d | grep -v -E '(/_|^_)')); printf '"%s",' "${clusters[@]}")]"
+
+  e2e:
+    name: Run e2e tests
+    runs-on: ubuntu-latest
+    needs: [matrix]
+    env:
+      ci-branch: ci/${{ github.head_ref }}/${{ matrix.path }}
+    strategy:
+      matrix:
+        path: ${{fromJSON(needs.matrix.outputs.clusters)}}
+      fail-fast: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Make flux-system use the CI branch (fails if flux-system is not currently setup to use ${{ github.base_ref }})
+        run: |
+          cat '${{ secrets.ci_init_path }}/../../flux-system/gotk-sync.yaml' | grep 'branch: ${{ github.base_ref }}'
+          sed -i 's`branch: ${{ github.base_ref }}`branch: ${{ env.ci-branch }}`g' '${{ secrets.ci_init_path }}/../../flux-system/gotk-sync.yaml'
+          cat '${{ secrets.ci_init_path }}/../../flux-system/gotk-sync.yaml'
+
+      - name: Publish CI branch
+        run: |
+          git checkout -b ${{ env.ci-branch }}
+          git add '${{ secrets.ci_init_path }}/../../flux-system/gotk-sync.yaml'
+          git config user.email "actions@github.com"
+          git config user.name "Github Actions"
+          git commit -m"Use of CI branch"
+          git push -u origin ${{ env.ci-branch }}
+
+      - name: Setup Kubernetes
+        uses: helm/kind-action@v1.2.0
+
+      - name: Prepare Terraform variables
+        working-directory: ${{ secrets.ci_init_path }}
+        run: |
+          cat >terraform.tfvars.json <<EOF
+          ${{ secrets.ci_sensitive_inputs }}
+          EOF
+
+      - name: Initialize Terraform
+        run: terraform init
+        working-directory: ${{ secrets.ci_init_path }}
+
+      - name: Bootstrap CI cluster
+        run: terraform apply --auto-approve
+        working-directory: ${{ secrets.ci_init_path }}
+        env:
+          TF_VAR_cluster_path: ${{ matrix.path }}/_ostack
+
+      - name: Verify oStack generated cluster reconciliation
+        run: |
+          kubectl wait --for=condition=ready --timeout=2m -n flux-system kustomization/flux-system
+          kubectl wait --for=condition=ready --timeout=1m -n flux-system kustomization/kyverno
+          kubectl wait --for=condition=ready --timeout=1m -n flux-system kustomization/kyverno-policies
+          kubectl wait --for=condition=ready --timeout=1m -n flux-system kustomization/$(echo "${{ matrix.path }}" | sed -E 's`^([^/]+)/(.+)$`\1`g')-tenants
+          kubectl wait --for=condition=ready --timeout=1m -n flux-system kustomization/$(echo "${{ matrix.path }}" | sed -E 's`^([^/]+)/(.+)$`\2`g')
+
+      - name: Verify all found kustomizations
+        run: kubectl get kustomizations -A -o json | jq ".items[].metadata | [.name, .namespace] | @csv" -r | sed -E 's`^"([^"]+)","([^"]+)"`\2 kustomization/\1`g' |  xargs -I {} sh -c "kubectl wait --for=condition=ready --timeout=1m -n {}"
+
+      - name: Setup Flux for debugging purpose
+        uses: fluxcd/flux2/action@main
+        if: failure()
+
+      - name: Quick debug
+        if: failure()
+        run: |
+          flux get kustomizations --all-namespaces
+          flux get sources all --all-namespaces
+
+      - name: Advanced debug
+        if: failure()
+        run: |
+          kubectl -n flux-system logs deploy/source-controller
+          kubectl -n flux-system logs deploy/kustomize-controller
+          kubectl -n flux-system logs deploy/helm-controller
+          kubectl -n flux-system logs deploy/notification-controller
+          kubectl -n kyverno logs deploy/kyverno
+          kubectl get all --all-namespaces
+
+      - name: Clean up
+        if: always()
+        run: git push origin --delete ${{ env.ci-branch }}
+
+  finalizer:
+    name: Passed all tests
+    if: always()
+    runs-on: ubuntu-latest
+    needs: [e2e]
+    steps:
+      - name: All tests passed successfully ✅
+        if: needs.e2e.result == 'success'
+        run: exit 0
+
+      - name: Some tests failed ❌
+        if: needs.e2e.result != 'success'
+        run: exit 1
