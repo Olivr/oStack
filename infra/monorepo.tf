@@ -67,8 +67,8 @@ module "ostack_monorepo" {
   private                = false
 
   secrets = {
-    copybara_ssh_key = null
-    copybara_token   = null
+    copybara_ssh_key = "sensitive::copybara_ssh_key"
+    copybara_token   = "sensitive::copybara_token"
     modules_matrix   = replace(replace(local.modules_matrix, "\\", "\\\\"), "\"", "\\\"")
     templates_matrix = replace(local.templates_matrix, "\"", "\\\"")
   }

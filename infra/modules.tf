@@ -24,8 +24,8 @@ module "terraform_modules" {
   private      = false
 
   secrets = {
-    copybara_ssh_key = null
-    copybara_token   = null
+    copybara_ssh_key = "sensitive::copybara_ssh_key"
+    copybara_token   = "sensitive::copybara_token"
   }
 
   sensitive_inputs = {
