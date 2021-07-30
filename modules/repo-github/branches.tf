@@ -4,11 +4,7 @@
 locals {
   prepare_maintainers = lookup(var.team_permissions, "maintain", null) == null ? [] : var.team_permissions.maintain
 
-  # Add current user to maintainers when there are files to commit so it can push them
-  maintainers = setunion(
-    [for team in local.prepare_maintainers : var.teams[team].node_id],
-    length(var.files) > 1 || length(var.strict_files) > 1 ? [data.github_user.current.node_id] : []
-  )
+  maintainers = [for team in local.prepare_maintainers : var.teams[team].node_id]
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -16,6 +12,10 @@ locals {
 # ---------------------------------------------------------------------------------------------------------------------
 resource "github_branch_protection" "branch" {
   count = var.branch_protection ? 1 : 0
+  depends_on = [
+    github_repository_file.files_strict,
+    github_repository_file.files
+  ]
 
   repository_id     = local.repo.node_id
   pattern           = local.repo.default_branch

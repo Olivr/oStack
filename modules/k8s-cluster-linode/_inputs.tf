@@ -5,6 +5,10 @@
 variable "name" {
   description = "Cluster name."
   type        = string
+  validation {
+    error_message = "Linode cluster names length must be 1-32 characters."
+    condition     = length(var.name) > 0 && length(var.name) < 33
+  }
 }
 
 # ---------------------------------------------------------------------------------------------------------------------

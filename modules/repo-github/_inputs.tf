@@ -208,17 +208,17 @@ variable "deploy_keys" {
   }
 }
 
-variable "strict_files" {
+variable "files_strict" {
   description = "Files to add to the repository's default branch. These files are tracked by Terraform to make sure their content always matches the configuration."
   type        = map(string)
   default     = {}
   validation {
-    error_message = "Variable strict_files cannot be null."
-    condition     = var.strict_files != null
+    error_message = "Variable files_strict cannot be null."
+    condition     = var.files_strict != null
   }
   validation {
     error_message = "Null values are not accepted. Use empty values instead."
-    condition     = alltrue([for v in values(var.strict_files) : v != null])
+    condition     = alltrue([for v in values(var.files_strict) : v != null])
   }
 }
 
