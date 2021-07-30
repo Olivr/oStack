@@ -33,7 +33,7 @@
     "brew": "brew install terraform tfsec tflint checkov terraform-docs jq",
     "prepare": "husky install .config/husky",
     "pretty-plan": "terraform -chdir=modules/ostack init && terraform -chdir=modules/ostack plan -out tf.plan && terraform -chdir=modules/ostack show -json tf.plan | jq '.' > modules/ostack/tf.plan.pretty.json && rm -rf modules/ostack/tf.plan",
-    "security": "tfsec && yarn security:plan -d modules/ostack",
+    "security": "tfsec modules && tfsec templates && yarn security:plan -d modules/ostack",
     "security:plan": "yarn pretty-plan && checkov --config-file .config/.checkov.yaml --repo-root-for-plan-enrichment $PWD/modules/ostack -f modules/ostack/tf.plan.pretty.json",
     "test": "yarn test:static && yarn test:integration",
     "test:integration": "terraform -chdir=modules/ostack test",
