@@ -117,11 +117,11 @@ locals {
     lookup(local.dev, "all_files_strict", false) ? null : local.vcs_configuration[var.vcs_default_provider].files
   )
 
-  globalops_files_formatted = { for path, content in local.global_ops_files_prepare :
-    (path) => try(join("\n", concat(
-      compact([lookup(local.globalops_defaults_vcs.file_templates, "${trimprefix(regex("/?[^/^]+$", lower(path)), "/")}_header", "")]),
+  globalops_files_formatted = { for file_path, content in local.global_ops_files_prepare :
+    (file_path) => try(join("\n", concat(
+      compact([lookup(local.globalops_defaults_vcs.file_templates, "${trimprefix(regex("/?[^/^]+$", lower(file_path)), "/")}_header", "")]),
       content,
-      compact([lookup(local.globalops_defaults_vcs.file_templates, "${trimprefix(regex("/?[^/^]+$", lower(path)), "/")}_footer", "")])
+      compact([lookup(local.globalops_defaults_vcs.file_templates, "${trimprefix(regex("/?[^/^]+$", lower(file_path)), "/")}_footer", "")])
     )), content)
   }
 
@@ -131,18 +131,18 @@ locals {
     local.globalops_files_formatted
   )
 
-  global_ops_files_strict_prepare = merge(
+  globalops_files_strict_prepare = merge(
     lookup(local.dev, "all_files_strict", false) ? local.vcs_configuration[var.vcs_default_provider].files : null,
     lookup(local.dev, "all_files_strict", false) ? local.gitops.global_files : null,
     local.gitops.global_files_strict,
     local.vcs_configuration[var.vcs_default_provider].files_strict
   )
 
-  globalops_files_strict_formatted = { for path, content in local.global_ops_files_strict_prepare :
-    (path) => try(join("\n", concat(
-      compact([lookup(local.globalops_defaults_vcs.file_templates, "${trimprefix(regex("/?[^/^]+$", lower(path)), "/")}_header", "")]),
+  globalops_files_strict_formatted = { for file_path, content in local.globalops_files_strict_prepare :
+    (file_path) => try(join("\n", concat(
+      compact([lookup(local.globalops_defaults_vcs.file_templates, "${trimprefix(regex("/?[^/^]+$", lower(file_path)), "/")}_header", "")]),
       content,
-      compact([lookup(local.globalops_defaults_vcs.file_templates, "${trimprefix(regex("/?[^/^]+$", lower(path)), "/")}_footer", "")])
+      compact([lookup(local.globalops_defaults_vcs.file_templates, "${trimprefix(regex("/?[^/^]+$", lower(file_path)), "/")}_footer", "")])
     )), content)
   }
 

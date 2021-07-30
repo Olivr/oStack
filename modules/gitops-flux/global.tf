@@ -2,21 +2,19 @@
 # Main variables
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
-  global_files_strict = { for path, content in merge(
+  global_files_strict = merge(
     local.global_infra,
     local.global_infra_local,
-    local.global_infra_clusters,
+    local.global_infra_clusters_merged,
     local.global_infra_cluster_init,
     local.global_base,
     local.global_flux,
     local.global_kyverno,
     local.global_tenants,
     local.global_environments_strict,
-  ) : path => content if content != null && content != "" && content != "\n" }
+  )
 
-  global_files = { for path, content in local.global_environments :
-    path => content if content != null && content != "" && content != "\n"
-  }
+  global_files = local.global_environments
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -47,7 +45,17 @@ locals {
     }
   ]...)
 
+  # Workaround to allow for static variable resolution (Terraform needs to know at least the keys)
+  # We identify the keys first, then the values and then we merge the two maps together
   global_infra_clusters = merge(distinct(flatten([for backend_id, backend in var.global.backends :
+    [for env_id, env in var.environments :
+      [for cluster in values(env.clusters) :
+        { "${trim(backend.vcs_working_directory, "/")}/${cluster.name}.tf" = "" }
+      ] if backend_id == env_id || backend.combine_environments
+    ]
+  ]))...)
+
+  global_infra_clusters_values = merge(distinct(flatten([for backend_id, backend in var.global.backends :
     [for env_id, env in var.environments :
       [for cluster in values(env.clusters) :
         {
@@ -65,6 +73,10 @@ locals {
       ] if backend_id == env_id || backend.combine_environments
     ]
   ]))...)
+
+  global_infra_clusters_merged = { for file_path in keys(local.global_infra_clusters) :
+    file_path => local.global_infra_clusters_values[file_path]
+  }
 
   # Init cluster file for local clusters (CI and dev)
   global_infra_local = {
@@ -103,7 +115,7 @@ locals {
       provider      = var.global.vcs.provider
       repo_http_url = var.global.vcs.http_url
       secret_name   = "vcs-token"
-    }) : null
+    }) : "# Not supported with ${var.global.vcs.provider}"
     "${local.base_dir}/flux-system/kustomization.yaml" = templatefile("${local.partial}/kustomization.yaml.tpl", {
       paths = [
         "gotk-components.yaml",

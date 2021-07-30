@@ -61,13 +61,7 @@ locals {
       repo.vcs.provider if repo.vcs.branch_protection
     ]
   ])))
-}
 
-# ---------------------------------------------------------------------------------------------------------------------
-# Dynamic computations
-# These may require an output from a data/resource/module
-# ---------------------------------------------------------------------------------------------------------------------
-locals {
   # Add sync workflow for each repo
   globalconfig_files_workflows = { for provider in local.global_config_providers :
     provider => { for k, v in merge({
@@ -95,8 +89,8 @@ locals {
   globalconfig_files_strict_globalops = {
     (local.globalops_static.vcs.provider) = (
       local.globalops_static.vcs.branch_protection
-      ? { for path, content in merge(local.globalops_files, local.globalops_files_strict) :
-        "${local.globalops_static.name}/${path}" => content
+      ? { for file_path, content in merge(local.globalops_files, local.globalops_files_strict) :
+        "${local.globalops_static.name}/${file_path}" => content
       } : {}
     )
   }
@@ -104,8 +98,8 @@ locals {
   # Namespace repos files to add to the configuration repo
   globalconfig_files_strict_namespaces = { for provider in local.global_config_providers :
     provider => merge([for id, repo in local.namespaces_repos_static :
-      { for path, content in lookup(merge(local.namespaces_repos_files, local.namespaces_repos_files_strict), id, {}) :
-        "${repo.name}/${path}" => content
+      { for file_path, content in lookup(merge(local.namespaces_repos_files, local.namespaces_repos_files_strict), id, {}) :
+        "${repo.name}/${file_path}" => content
       } if repo.vcs.provider == provider && repo.vcs.branch_protection
     ]...)
   }
