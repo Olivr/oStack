@@ -86,6 +86,12 @@ variable "vcs_working_directory" {
   default     = ""
 }
 
+variable "vcs_trigger_paths" {
+  description = "VCS repository branch to track."
+  type        = set(string)
+  default     = []
+}
+
 variable "sensitive_inputs" {
   description = "Values that should be marked as sensitive. Supported by `workspace_tf_vars`, `workspace_tf_vars_hcl`, `workspace_env_vars`."
   type        = map(string)

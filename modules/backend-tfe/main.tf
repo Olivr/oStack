@@ -8,6 +8,7 @@ resource "tfe_workspace" "workspace" {
   organization      = var.workspace_organization
   auto_apply        = var.workspace_auto_apply
   working_directory = var.vcs_working_directory
+  trigger_prefixes  = var.vcs_trigger_paths
   vcs_repo {
     identifier     = var.vcs_repo_path
     branch         = var.vcs_branch_name
@@ -21,14 +22,11 @@ resource "tfe_variable" "tf_vars" {
 
   workspace_id = tfe_workspace.workspace.id
   category     = "terraform"
-  sensitive    = each.value == null
+  sensitive    = can(regex("^sensitive::", each.value))
   key          = each.key
-  value = can(
-    regex("^sensitive::", each.value)
-    ) ? (
-    sensitive(var.sensitive_inputs[trimprefix(each.value, "sensitive::")])
-    ) : (
-    each.value
+  value = can(regex("^sensitive::", each.value)
+    ) ? (sensitive(var.sensitive_inputs[trimprefix(each.value, "sensitive::")])
+    ) : (each.value
   )
 }
 
@@ -39,14 +37,11 @@ resource "tfe_variable" "tf_vars_hcl" {
   workspace_id = tfe_workspace.workspace.id
   category     = "terraform"
   hcl          = true
-  sensitive    = each.value == null
+  sensitive    = can(regex("^sensitive::", each.value))
   key          = each.key
-  value = can(
-    regex("^sensitive::", each.value)
-    ) ? (
-    sensitive(var.sensitive_inputs[trimprefix(each.value, "sensitive::")])
-    ) : (
-    each.value
+  value = can(regex("^sensitive::", each.value)
+    ) ? (sensitive(var.sensitive_inputs[trimprefix(each.value, "sensitive::")])
+    ) : (each.value
   )
 }
 
@@ -56,13 +51,10 @@ resource "tfe_variable" "env_variables" {
 
   workspace_id = tfe_workspace.workspace.id
   category     = "env"
-  sensitive    = each.value == null
+  sensitive    = can(regex("^sensitive::", each.value))
   key          = each.key
-  value = can(
-    regex("^sensitive::", each.value)
-    ) ? (
-    sensitive(var.sensitive_inputs[trimprefix(each.value, "sensitive::")])
-    ) : (
-    each.value
+  value = can(regex("^sensitive::", each.value)
+    ) ? (sensitive(var.sensitive_inputs[trimprefix(each.value, "sensitive::")])
+    ) : (each.value
   )
 }
