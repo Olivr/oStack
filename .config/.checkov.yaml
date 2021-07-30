@@ -6,5 +6,5 @@ evaluate-variables: true
 external-modules-download-path: .external_modules
 framework: all
 soft-fail: false
-# skip-check:
-#   - CKV_XXX
+skip-check:
+  - CKV_SECRET_6
