@@ -1,3 +1,3 @@
-provider "cloudflare" {
-  # Configuration options
+terraform {
+  required_version = "~> 1.0"
 }
