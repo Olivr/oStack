@@ -1,44 +1,54 @@
 # ---------------------------------------------------------------------------------------------------------------------
 # Resources
 # ---------------------------------------------------------------------------------------------------------------------
-resource "kubernetes_secret" "deploy_keys" {
+resource "kubectl_manifest" "deploy_keys" {
   for_each = var.deploy_keys
+
   depends_on = [
-    kubernetes_namespace.namespaces,
-    kubernetes_namespace.flux_system
+    kubectl_manifest.namespaces,
+    kubectl_manifest.flux_system
   ]
 
-  metadata {
-    name      = each.value.name
-    namespace = each.value.namespace
-  }
-
-  data = {
-    "identity.pub" = base64decode(each.value.public_key)
-    known_hosts    = each.value.known_hosts
-    identity = can(
-      regex("^sensitive::", each.value.private_key)
-      ) ? (
-      sensitive(var.sensitive_inputs[trimprefix(each.value.private_key, "sensitive::")])
-      ) : (
-      each.value.private_key
-    )
-  }
+  yaml_body = <<-YAML
+    apiVersion: v1
+    kind: Secret
+    type: Opaque
+    metadata:
+      name: "${each.value.name}"
+      namespace: "${each.value.namespace}"
+      labels:
+        toolkit.fluxcd.io/tenant: ${each.value.namespace}
+    data:
+      "known_hosts": >-
+        ${base64encode(each.value.known_hosts)}
+      "identity.pub": >-
+        ${each.value.public_key}
+      "identity": >-
+        ${base64encode(can(regex("^sensitive::", each.value.private_key)) ? sensitive(var.sensitive_inputs[trimprefix(each.value.private_key, "sensitive::")]) : each.value.private_key)}
+    YAML
 }
 
-resource "kubernetes_secret" "secrets" {
+resource "kubectl_manifest" "secrets" {
   for_each = var.secrets
+
   depends_on = [
-    kubernetes_namespace.namespaces,
-    kubernetes_namespace.flux_system
+    kubectl_manifest.namespaces,
+    kubectl_manifest.flux_system
   ]
 
-  metadata {
-    name      = each.value.name
-    namespace = each.value.namespace
-  }
-
-  data = { for k, v in each.value.data :
-    k => can(regex("^sensitive::", v)) ? sensitive(var.sensitive_inputs[trimprefix(v, "sensitive::")]) : v
-  }
+  yaml_body = <<-YAML
+    apiVersion: v1
+    kind: Secret
+    type: Opaque
+    metadata:
+      name: "${each.value.name}"
+      namespace: "${each.value.namespace}"
+      labels:
+        toolkit.fluxcd.io/tenant: ${each.value.namespace}
+    data:
+    %{for k, v in each.value.data}
+      "${k}": >-
+        ${base64encode(can(regex("^sensitive::", v)) ? sensitive(var.sensitive_inputs[trimprefix(v, "sensitive::")]) : v)}
+    %{endfor~}
+    YAML
 }

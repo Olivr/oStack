@@ -1,31 +1,25 @@
 # ---------------------------------------------------------------------------------------------------------------------
 # Resources
 # ---------------------------------------------------------------------------------------------------------------------
-resource "kubernetes_namespace" "flux_system" {
-  metadata {
-    name = "flux-system"
-  }
+resource "kubectl_manifest" "flux_system" {
+  yaml_body = <<-YAML
+    apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: flux-system
+    YAML
 
   lifecycle {
     prevent_destroy = true
-    ignore_changes = [
-      metadata[0].labels,
-      metadata[0].annotations,
-    ]
   }
 }
 
-resource "kubernetes_namespace" "namespaces" {
-  for_each = var.namespaces
-
-  metadata {
-    name = each.value
-  }
-
-  lifecycle {
-    ignore_changes = [
-      metadata[0].labels,
-      metadata[0].annotations,
-    ]
-  }
+resource "kubectl_manifest" "namespaces" {
+  for_each  = var.namespaces
+  yaml_body = <<-YAML
+    apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: ${each.value}
+    YAML
 }

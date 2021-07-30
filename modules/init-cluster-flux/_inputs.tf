@@ -42,7 +42,13 @@ variable "secrets" {
 variable "base_dir" {
   description = "Name of the base directory."
   type        = string
-  default     = "_base"
+  default     = "base"
+}
+
+variable "base_path" {
+  description = "Path to the base directory relative to the current Terraform configuration root."
+  type        = string
+  default     = ".."
 }
 
 variable "sensitive_inputs" {
