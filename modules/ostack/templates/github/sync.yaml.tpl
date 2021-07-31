@@ -16,10 +16,11 @@ jobs:
     runs-on: ubuntu-latest
     name: Sync ${repo_name}
     steps:
-      %{ if automerge == true~}
+%{ if automerge == true~}
       - name: Wait if more commits are coming
         run: sleep 30
-      %{ endif~}
+%{ endif~}
+
       - name: Checkout
         uses: actions/checkout@v2
         with:
