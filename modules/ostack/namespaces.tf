@@ -213,9 +213,9 @@ locals {
   # VCS repos to create: Specify infra-specific values
   namespaces_repos_vcs_infra = { for id, vcs in local.namespaces_repos_vcs_sensitive :
     id => {
-      branch_status_checks = [for backend in local.namespaces_repos_backend_env[id] :
+      branch_status_checks = setunion(vcs.branch_status_checks, [for backend in local.namespaces_repos_backend_env[id] :
         format(local.backend_provider_configuration[backend.provider].status_check_format, backend.name)
-      ]
+      ])
       team_configuration = {
         admin    = ["global_admin"]
         maintain = ["global_manager", "${vcs._repo._namespace.id}_manager", "global_infra_lead", "${vcs._repo._namespace.id}_infra_lead"]
