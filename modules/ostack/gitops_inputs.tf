@@ -24,6 +24,10 @@ variable "gitops_configuration_base" {
   default     = { flux = {} }
   type = map(object({
     base_dir = optional(string)
+    init_cluster = optional(object({
+      module_source  = optional(string)
+      module_version = optional(string)
+    }))
   }))
 
   validation {

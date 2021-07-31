@@ -65,7 +65,7 @@ locals {
             cluster       = cluster.name
             cluster_path  = "./${env.name}/${cluster.name}/${local.base_dir}"
             deploy_keys   = replace(jsonencode(var.deploy_keys[cluster.name]), "/(\".*?\"):/", "$1 = ") # https://brendanthompson.com/til/2021/3/hcl-enabled-tfe-variables
-            module_source = local.cluster_init_path != null ? (backend.combine_environments ? "./modules/init-cluster" : "../shared-modules/init-cluster") : var.cluster_init_module
+            module_source = local.cluster_init_path != null ? (backend.combine_environments ? "./modules/init-cluster" : "../shared-modules/init-cluster") : var.init_cluster.module_source
             namespaces    = join("\",\"", local.environment_tenants[env.name])
             secrets       = replace(jsonencode(var.secrets[cluster.name]), "/(\".*?\"):/", "$1 = ") # https://brendanthompson.com/til/2021/3/hcl-enabled-tfe-variables
           })
@@ -85,7 +85,7 @@ locals {
     "${local.infra_dir}/_local/main.tf" = templatefile("${path.module}/templates/global/infra/_local.tpl", {
       base_dir      = local.base_dir
       deploy_keys   = replace(jsonencode(var.deploy_keys["_ci"]), "/(\".*?\"):/", "$1 = ") # https://brendanthompson.com/til/2021/3/hcl-enabled-tfe-variables
-      module_source = local.cluster_init_path != null ? (local.combined_infra ? "../modules/init-cluster" : "../shared-modules/init-cluster") : var.cluster_init_module
+      module_source = local.cluster_init_path != null ? (local.combined_infra ? "../modules/init-cluster" : "../shared-modules/init-cluster") : var.init_cluster.module_source
       namespaces    = join("\",\"", keys(local.tenants))
     })
   }

@@ -87,13 +87,19 @@ variable "cluster_init_path" {
   default     = null
 }
 
-variable "cluster_init_module" {
+variable "init_cluster" {
   description = "Remote Terraform module used to bootstrap a cluster (superseeded by `cluster_init_path`)."
-  type        = string
-  default     = "Olivr/init-cluster/flux"
+  type = object({
+    module_source  = string
+    module_version = string
+  })
+  default = {
+    module_source  = "Olivr/init-cluster/flux"
+    module_version = null
+  }
   validation {
-    condition     = var.cluster_init_module != null
-    error_message = "You must specify a module source. If you want to use a local module, you should specify `cluster_init_path` instead."
+    condition     = var.init_cluster != null && var.init_cluster.module_source != null
+    error_message = "You must specify a module source. If you want to use a local module, you should specify `cluster_init_path` instead and leave this with the defaults."
   }
 }
 
