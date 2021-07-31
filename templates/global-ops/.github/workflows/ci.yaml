@@ -28,6 +28,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
 
       - name: Make flux-system use the CI branch (fails if flux-system is not currently setup to use ${{ github.base_ref }})
         run: |
@@ -42,7 +44,7 @@ jobs:
           git config user.email "actions@github.com"
           git config user.name "Github Actions"
           git commit -m"Use of CI branch"
-          git push -u origin ${{ env.ci-branch }}
+          git push --force -u origin ${{ env.ci-branch }}
 
       - name: Setup Kubernetes
         uses: helm/kind-action@v1.2.0
@@ -100,7 +102,7 @@ jobs:
         run: git push origin --delete ${{ env.ci-branch }}
 
   finalizer:
-    name: Passed all tests
+    name: Passed all CI tests
     if: always()
     runs-on: ubuntu-latest
     needs: [e2e]

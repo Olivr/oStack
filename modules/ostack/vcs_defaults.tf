@@ -39,7 +39,7 @@ locals {
     branch_protection                = true
     branch_protection_enforce_admins = true
     branch_review_count              = 0
-    branch_status_checks             = ["Passed all tests"]
+    branch_status_checks             = ["Passed all CI tests"]
     deploy_keys                      = {}
     files                            = {}
     files_strict                     = {}
