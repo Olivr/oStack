@@ -44,7 +44,7 @@ locals {
       admin    = ["global_admin"]
       maintain = []
       read     = keys(merge(values(local.namespace_teams).*.teams...))
-      write    = keys(local.global_teams.global.teams)
+      write    = setsubtract(keys(local.global_teams.global.teams), ["global_admin"])
     }
   })
 }
