@@ -117,7 +117,7 @@ module "vcs_repo_globalconfig_github" {
   branch_status_checks             = each.value.vcs.branch_status_checks
   deploy_keys                      = each.value.vcs.deploy_keys
   description                      = each.value.description
-  files                            = each.value.vcs.files
+  files                            = local.globalconfig_dynamic[each.key].vcs.files
   files_strict                     = local.globalconfig_dynamic[each.key].vcs.files_strict
   has_issues                       = each.value.vcs.repo_enable_issues
   has_projects                     = each.value.vcs.repo_enable_projects

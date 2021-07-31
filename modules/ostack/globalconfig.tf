@@ -17,6 +17,7 @@ locals {
     provider => {
       vcs = {
         files_strict = local.globalconfig_files_strict[provider]
+        files        = local.globalconfig_files[provider]
       }
     }
   }
@@ -63,7 +64,7 @@ locals {
   ])))
 
   # Add sync workflow for each repo
-  globalconfig_files_workflows = { for provider in local.global_config_providers :
+  globalconfig_files_strict_workflows = { for provider in local.global_config_providers :
     provider => { for k, v in merge({
       "${local.vcs_provider_configuration[provider].workflow_dir}/sync-${local.globalops_static.name}.yaml" = local.globalops_static.vcs.provider == provider && local.globalops_static.vcs.branch_protection ? templatefile("${path.module}/templates/${provider}/sync.yaml.tpl", {
         config_branch = local.globalconfig_defaults_vcs.branch_default_name
@@ -89,7 +90,7 @@ locals {
   globalconfig_files_strict_globalops = {
     (local.globalops_static.vcs.provider) = (
       local.globalops_static.vcs.branch_protection
-      ? { for file_path, content in merge(local.globalops_files, local.globalops_files_strict) :
+      ? { for file_path, content in local.globalops_files_strict :
         "${local.globalops_static.name}/${file_path}" => content
       } : {}
     )
@@ -98,19 +99,47 @@ locals {
   # Namespace repos files to add to the configuration repo
   globalconfig_files_strict_namespaces = { for provider in local.global_config_providers :
     provider => merge([for id, repo in local.namespaces_repos_static :
-      { for file_path, content in lookup(merge(local.namespaces_repos_files, local.namespaces_repos_files_strict), id, {}) :
+      { for file_path, content in lookup(local.namespaces_repos_files_strict, id, {}) :
         "${repo.name}/${file_path}" => content
       } if repo.vcs.provider == provider && repo.vcs.branch_protection
     ]...)
   }
 
-  # Files to add to the configuration repo per VCS provider
+  # Global ops repo files to add to the configuration repo
+  globalconfig_files_globalops = {
+    (local.globalops_static.vcs.provider) = (
+      local.globalops_static.vcs.branch_protection
+      ? { for file_path, content in local.globalops_files :
+        "${local.globalops_static.name}/${file_path}" => content
+      } : {}
+    )
+  }
+
+  # Namespace repos files to add to the configuration repo
+  globalconfig_files_namespaces = { for provider in local.global_config_providers :
+    provider => merge([for id, repo in local.namespaces_repos_static :
+      { for file_path, content in lookup(local.namespaces_repos_files, id, {}) :
+        "${repo.name}/${file_path}" => content
+      } if repo.vcs.provider == provider && repo.vcs.branch_protection
+    ]...)
+  }
+
+  # Strict files to add to the configuration repo per VCS provider
   globalconfig_files_strict = { for provider in local.global_config_providers :
     provider => merge(
       lookup(local.vcs_templates_files, "global_config", null), # Add template files if a local template was used
-      lookup(local.globalconfig_files_workflows, provider, null),
+      lookup(local.globalconfig_files_strict_workflows, provider, null),
       lookup(local.globalconfig_files_strict_globalops, provider, null),
-      lookup(local.globalconfig_files_strict_namespaces, provider, null)
+      lookup(local.globalconfig_files_strict_namespaces, provider, null),
+      lookup(local.dev, "all_files_strict", false) ? lookup(local.globalconfig_files_globalops, provider, null) : null,
+      lookup(local.dev, "all_files_strict", false) ? lookup(local.globalconfig_files_namespaces, provider, null) : null
+    )
+  }
+  # Files to add to the configuration repo per VCS provider
+  globalconfig_files = { for provider in local.global_config_providers :
+    provider => merge(
+      lookup(local.dev, "all_files_strict", false) ? null : lookup(local.globalconfig_files_globalops, provider, null),
+      lookup(local.dev, "all_files_strict", false) ? null : lookup(local.globalconfig_files_namespaces, provider, null)
     )
   }
 }
