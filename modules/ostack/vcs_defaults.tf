@@ -115,7 +115,7 @@ locals {
           )
         },
         # if dev_mode is used, force templates
-        { for id, template in local.dev_mode :
+        { for id, template in local.dev :
           replace(id, "/^template_/", "") => can(regex("^\\.", template)) ? null : template if can(regex("^template_", id))
         }
       )
@@ -123,7 +123,7 @@ locals {
   }
 
   # If local templates are used (in dev mode), prepare the files
-  vcs_templates_files = { for id, template in local.dev_mode :
+  vcs_templates_files = { for id, template in local.dev :
     replace(id, "/^template_/", "") => { for file_path in fileset("${path.module}/${template}", "**") :
       file_path => file("${path.module}/${template}/${file_path}")
     } if can(regex("^template_", id)) && can(regex("^\\.", template))
