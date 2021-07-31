@@ -55,11 +55,13 @@ locals {
     repo_is_template                 = false
     repo_issue_labels                = {}
     repo_private                     = true
-    repo_secrets                     = {}
-    sensitive_inputs                 = {}
     repo_template                    = null
     repo_vulnerability_alerts        = true
+    sensitive_inputs                 = {}
     tags                             = setunion(var.tags, [local.organization_name])
+    repo_secrets = {
+      vcs_write_token = "sensitive::vcs_write_token"
+    }
     file_templates = {
       codeowners_header = <<-EOT
       ##
@@ -72,7 +74,11 @@ locals {
   }
 
   vcs_configuration_defaults = {
-    github = local.vcs_configuration_defaults_base
+    github = merge(local.vcs_configuration_defaults_base, {
+      sensitive_inputs = {
+        vcs_write_token = try(sensitive(var.vcs_write_token.github), null)
+      }
+    })
   }
 
   vcs_provider_configuration_defaults = {

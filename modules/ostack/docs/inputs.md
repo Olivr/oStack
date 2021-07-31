@@ -39,7 +39,7 @@
 | Name | Description | Type | Default | Required |
 | --- | --- | --- | --- | :-: |
 | <a name="input_organization_title"></a> [organization_title](#input_organization_title) | Human-friendly organization title (eg. My Super Startup). | `string` | n/a | yes |
-| <a name="input_vcs_token_write"></a> [vcs_token_write](#input_vcs_token_write) | VCS token with write access for commit statuses, per VCS provider. | `map(string)` | n/a | yes |
+| <a name="input_vcs_write_token"></a> [vcs_write_token](#input_vcs_write_token) | VCS token with write access, per VCS provider. Used for updating commit statuses in GitOps and is also added as a secret to each repo for automerge. This behaviour can be overriden in `repo_secrets` in `vcs_configuration_base` or per repo in `namespaces`. | `map(string)` | n/a | yes |
 | <a name="input_backend_configuration_base"></a> [backend_configuration_base](#input_backend_configuration_base) | Base backend configuration per provider. | <pre>map(object({<br> allow_destroy_plan = optional(bool)<br> combine_environments = optional(bool)<br> env_vars = optional(map(string))<br> speculative_enabled = optional(bool)<br> tf_vars = optional(map(string))<br> tf_vars_hcl = optional(map(string))<br> tfe_oauth_token_id = optional(string)<br> }))</pre> | <pre>{<br> "tfe": {}<br>}</pre> | no |
 | <a name="input_backend_default_provider"></a> [backend_default_provider](#input_backend_default_provider) | Default backend provider. | `string` | `"tfe"` | no |
 | <a name="input_backend_organization_name"></a> [backend_organization_name](#input_backend_organization_name) | Backend organization name. | `string` | `null` | no |

@@ -37,8 +37,8 @@ locals {
     branch_protection    = false
     branch_review_count  = 0
     branch_status_checks = []
-    repo_secrets         = merge(local.vcs_configuration[var.vcs_default_provider].repo_secrets, { vcs_write_token = "sensitive::vcs_write_token" })
-    sensitive_inputs     = merge(local.vcs_configuration[var.vcs_default_provider].sensitive_inputs, { vcs_write_token = sensitive(var.vcs_token_write[var.vcs_default_provider]) })
+    repo_secrets         = local.vcs_configuration[var.vcs_default_provider].repo_secrets
+    sensitive_inputs     = local.vcs_configuration[var.vcs_default_provider].sensitive_inputs
     repo_template        = local.vcs_provider_configuration[var.vcs_default_provider].repo_templates.global_config
     team_configuration = {
       admin    = ["global_admin"]

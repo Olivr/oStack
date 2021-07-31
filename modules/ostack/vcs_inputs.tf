@@ -1,4 +1,18 @@
 # ---------------------------------------------------------------------------------------------------------------------
+# REQUIRED INPUTS
+# These parameters must be specified.
+# ---------------------------------------------------------------------------------------------------------------------
+# VCS token with write access
+variable "vcs_write_token" {
+  description = "VCS token with write access, per VCS provider. Used for updating commit statuses in GitOps and is also added as a secret to each repo for automerge. This behaviour can be overriden in `repo_secrets` in `vcs_configuration_base` or per repo in `namespaces`."
+  type        = map(string)
+  sensitive   = true
+  validation {
+    error_message = "Variable vcs_write_token cannot be null."
+    condition     = var.vcs_write_token != null
+  }
+}
+# ---------------------------------------------------------------------------------------------------------------------
 # OPTIONAL INPUTS
 # These parameters have reasonable defaults.
 # ---------------------------------------------------------------------------------------------------------------------

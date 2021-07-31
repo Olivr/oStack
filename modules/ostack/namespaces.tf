@@ -191,13 +191,9 @@ locals {
   namespaces_repos_vcs_sensitive = { for id, vcs in local.namespaces_repos_vcs_complex :
     id => merge(vcs,
       {
-        sensitive_inputs = merge(
-          { for k, v in vcs.repo_secrets :
-            trimprefix(v, "sensitive::") => sensitive(var.sensitive_inputs[trimprefix(v, "sensitive::")]) if can(regex("^sensitive::", v))
-          },
-          { vcs_token_write = sensitive(var.vcs_token_write[var.vcs_default_provider]) }
-        )
-        repo_secrets = merge(vcs.repo_secrets, { VCS_WRITE_TOKEN = "sensitive::vcs_token_write" })
+        sensitive_inputs = { for k, v in vcs.repo_secrets :
+          trimprefix(v, "sensitive::") => sensitive(merge(vcs.sensitive_inputs, var.sensitive_inputs)[trimprefix(v, "sensitive::")]) if can(regex("^sensitive::", v))
+        }
       }
     )
   }

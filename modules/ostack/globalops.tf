@@ -171,7 +171,6 @@ locals {
   globalops_vcs_repo_secrets = merge(
     local.vcs_configuration[var.vcs_default_provider].repo_secrets,
     {
-      vcs_write_token     = "sensitive::vcs_write_token" # For automerge
       ci_sensitive_inputs = "sensitive::ci_sensitive_inputs"
       ci_init_path        = "${local.globalops_defaults_gitops.infra_dir}/_local"
     }
@@ -180,7 +179,6 @@ locals {
   globalops_vcs_sensitive_inputs = merge(
     local.vcs_configuration[var.vcs_default_provider].sensitive_inputs,
     {
-      vcs_write_token = sensitive(var.vcs_token_write[var.vcs_default_provider])
       ci_sensitive_inputs = jsonencode({
         sensitive_inputs = local.globalops_gitops_local_sensitive_inputs
       })
@@ -247,11 +245,11 @@ locals {
           (cluster.name) = merge({
             kube_token                                   = sensitive(local.clusters_k8s[cluster_id].kube_token)
             "${local.globalops_static.name}_private_key" = sensitive(tls_private_key.cluster_keys[cluster_id].private_key_pem)
-            "${local.globalops_static.name}_vcs_token"   = sensitive(var.vcs_token_write[var.vcs_default_provider])
+            "${local.globalops_static.name}_vcs_token"   = sensitive(var.vcs_write_token[var.vcs_default_provider])
             }, merge([for id, repo in local.namespaces_repos_static :
               {
                 "${repo.name}_private_key" = sensitive(tls_private_key.ns_keys["${id}_${cluster_id}"].private_key_pem)
-                "${repo.name}_vcs_token"   = sensitive(var.vcs_token_write[repo.vcs.provider])
+                "${repo.name}_vcs_token"   = sensitive(var.vcs_write_token[repo.vcs.provider])
               } if repo.type == "ops" && contains(repo._namespace.environments, cluster._env.id)
             ]...)
           )

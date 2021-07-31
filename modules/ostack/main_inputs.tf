@@ -12,17 +12,6 @@ variable "organization_title" {
   }
 }
 
-# VCS token with write access
-variable "vcs_token_write" {
-  description = "VCS token with write access for commit statuses, per VCS provider."
-  type        = map(string)
-  sensitive   = true
-  validation {
-    error_message = "Variable vcs_token_write cannot be null."
-    condition     = var.vcs_token_write != null
-  }
-}
-
 # ---------------------------------------------------------------------------------------------------------------------
 # OPTIONAL INPUTS
 # These parameters have reasonable defaults.
