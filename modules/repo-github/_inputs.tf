@@ -236,6 +236,16 @@ variable "files" {
   }
 }
 
+variable "dotfiles_first" {
+  description = "If .* (.github) files at the root of the repo should be added first."
+  type        = bool
+  default     = false
+  validation {
+    error_message = "Variable files cannot be null."
+    condition     = var.dotfiles_first != null
+  }
+}
+
 variable "sensitive_inputs" {
   description = "Values that should be marked as sensitive. Supported by `secrets`, `deploy_keys`."
   type        = map(string)

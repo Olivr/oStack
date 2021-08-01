@@ -26,6 +26,8 @@ No modules.
 | [github_issue_label.labels](https://registry.terraform.io/providers/integrations/github/latest/docs/resources/issue_label) | resource |
 | [github_repository.repo](https://registry.terraform.io/providers/integrations/github/latest/docs/resources/repository) | resource |
 | [github_repository_deploy_key.deploy_keys](https://registry.terraform.io/providers/integrations/github/latest/docs/resources/repository_deploy_key) | resource |
+| [github_repository_file.dotfiles](https://registry.terraform.io/providers/integrations/github/latest/docs/resources/repository_file) | resource |
+| [github_repository_file.dotfiles_strict](https://registry.terraform.io/providers/integrations/github/latest/docs/resources/repository_file) | resource |
 | [github_repository_file.files](https://registry.terraform.io/providers/integrations/github/latest/docs/resources/repository_file) | resource |
 | [github_repository_file.files_strict](https://registry.terraform.io/providers/integrations/github/latest/docs/resources/repository_file) | resource |
 | [github_team_repository.permissions](https://registry.terraform.io/providers/integrations/github/latest/docs/resources/team_repository) | resource |
@@ -48,6 +50,7 @@ No modules.
 | <a name="input_branch_status_checks"></a> [branch_status_checks](#input_branch_status_checks) | List of status checks required before merging pull requests. | `list(string)` | `[]` | no |
 | <a name="input_deploy_keys"></a> [deploy_keys](#input_deploy_keys) | Map of repository deploy keys. You can pass sensitive values by setting the `ssh_key` value to `sensitive::key` where `key` refers to a value in `sensitive_inputs`. | <pre>map(object({<br> title = string<br> ssh_key = string<br> read_only = optional(bool)<br> }))</pre> | `{}` | no |
 | <a name="input_description"></a> [description](#input_description) | A description of the repository. | `string` | `null` | no |
+| <a name="input_dotfiles_first"></a> [dotfiles_first](#input_dotfiles_first) | If .\* (.github) files at the root of the repo should be added first. | `bool` | `false` | no |
 | <a name="input_files"></a> [files](#input_files) | Files to add to the repository's default branch. These files can be modified outside of Terraform. | `map(string)` | `{}` | no |
 | <a name="input_files_strict"></a> [files_strict](#input_files_strict) | Files to add to the repository's default branch. These files are tracked by Terraform to make sure their content always matches the configuration. | `map(string)` | `{}` | no |
 | <a name="input_has_issues"></a> [has_issues](#input_has_issues) | Set to `true` to enable the GitHub Issues features on the repository. | `bool` | `true` | no |
