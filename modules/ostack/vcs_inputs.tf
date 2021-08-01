@@ -7,9 +7,17 @@ variable "vcs_write_token" {
   description = "VCS token with write access, per VCS provider. Used for updating commit statuses in GitOps and is also added as a secret to each repo for automerge. This behaviour can be overriden in `repo_secrets` in `vcs_configuration_base` or per repo in `namespaces`."
   type        = map(string)
   sensitive   = true
+
   validation {
     error_message = "Variable vcs_write_token cannot be null."
     condition     = var.vcs_write_token != null
+  }
+
+  validation {
+    error_message = "You must specify a supported VCS provider."
+    condition = alltrue([for provider in keys(var.vcs_write_token) :
+      contains(["github"], provider)
+    ])
   }
 }
 # ---------------------------------------------------------------------------------------------------------------------
