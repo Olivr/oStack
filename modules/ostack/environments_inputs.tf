@@ -3,7 +3,13 @@
 # These parameters have reasonable defaults.
 # ---------------------------------------------------------------------------------------------------------------------
 variable "environments" {
-  description = "Environment names and their optional cluster configuration. \nNote that all namespaces are assigned to all clusters unless the `namespaces` parameter is set."
+  description = <<-DESC
+    Environment names and their optional configuration.
+    Each environment contains one or more Kubernetes clusters.
+    If you want to later rename your environments, do not change the key name or Terraform will destroy it and create a new one from scratch which will have dramatic effects on your deployments.
+    For this reason, it is recommended to use generic key names for both environments and clusters, you can name both by using the `name` parameter.
+    By default a staging environment is created with one cluster using the default cluster configuration on your default cloud provider
+    DESC
   type = map(object({
     name                = optional(string)
     promotion_order     = optional(number)

@@ -9,12 +9,12 @@ variable "gitops_default_provider" {
   default     = "flux"
 
   validation {
-    error_message = "Variable gitops_default_provider cannot be null."
-    condition     = var.gitops_default_provider != null
+    error_message = "Variable gitops_default_provider cannot be null or empty."
+    condition     = var.gitops_default_provider != null && var.gitops_default_provider != ""
   }
 
   validation {
-    error_message = "You must specify a supported GitOps provider."
+    error_message = "You must specify a supported GitOps provider (flux)."
     condition     = contains(["flux"], var.gitops_default_provider)
   }
 }

@@ -1,24 +1,27 @@
 # ---------------------------------------------------------------------------------------------------------------------
-# OPTIONAL INPUTS
-# These parameters have reasonable defaults.
+# REQUIRED INPUTS
+# These parameters must be specified.
 # ---------------------------------------------------------------------------------------------------------------------
 # Cloud providers
 variable "cloud_default_provider" {
   description = "Default cloud provider."
   type        = string
-  default     = "linode"
 
   validation {
-    error_message = "Variable cloud_default_provider cannot be null."
-    condition     = var.cloud_default_provider != null
+    error_message = "Variable cloud_default_provider cannot be null or empty."
+    condition     = var.cloud_default_provider != null && var.cloud_default_provider != ""
   }
 
   validation {
-    error_message = "You must specify a supported cloud provider."
+    error_message = "Accepted values are linode, digitalocean."
     condition     = contains(["linode", "digitalocean"], var.cloud_default_provider)
   }
 }
 
+# ---------------------------------------------------------------------------------------------------------------------
+# OPTIONAL INPUTS
+# These parameters have reasonable defaults.
+# ---------------------------------------------------------------------------------------------------------------------
 variable "cluster_configuration_base" {
   description = "Base cluster configuration per cloud provider."
   default     = {}

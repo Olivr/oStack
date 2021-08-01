@@ -4,7 +4,11 @@
 # ---------------------------------------------------------------------------------------------------------------------
 # VCS token with write access
 variable "vcs_write_token" {
-  description = "VCS token with write access, per VCS provider. Used for updating commit statuses in GitOps and is also added as a secret to each repo for automerge. This behaviour can be overriden in `repo_secrets` in `vcs_configuration_base` or per repo in `namespaces`."
+  description = <<-DESC
+    VCS token with write access, per VCS provider.
+    Used for updating commit statuses in GitOps and is also added as a secret to each repo for automerge.
+    This behaviour can be overriden in `repo_secrets` in `vcs_configuration_base` or per repo in `namespaces`.
+    DESC
   type        = map(string)
   sensitive   = true
 
@@ -14,7 +18,7 @@ variable "vcs_write_token" {
   }
 
   validation {
-    error_message = "You must specify a supported VCS provider."
+    error_message = "You must specify a supported VCS provider (github)."
     condition = alltrue([for provider in keys(var.vcs_write_token) :
       contains(["github"], provider)
     ])
@@ -37,8 +41,8 @@ variable "vcs_default_provider" {
   default     = "github"
 
   validation {
-    error_message = "Variable vcs_default_provider cannot be null."
-    condition     = var.vcs_default_provider != null
+    error_message = "Variable vcs_default_provider cannot be null or empty."
+    condition     = var.vcs_default_provider != null && var.vcs_default_provider != ""
   }
 
   validation {

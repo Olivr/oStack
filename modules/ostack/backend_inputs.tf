@@ -15,12 +15,12 @@ variable "backend_default_provider" {
   default     = "tfe"
 
   validation {
-    error_message = "Variable backend_default_provider cannot be null."
-    condition     = var.backend_default_provider != null
+    error_message = "Variable backend_default_provider cannot be null or empty."
+    condition     = var.backend_default_provider != null && var.backend_default_provider != ""
   }
 
   validation {
-    error_message = "You must specify a supported backend provider."
+    error_message = "You must specify a supported backend provider (tfe)."
     condition     = contains(["tfe"], var.backend_default_provider)
   }
 }

@@ -3,7 +3,14 @@
 # These parameters have reasonable defaults.
 # ---------------------------------------------------------------------------------------------------------------------
 variable "namespaces" {
-  description = "Namespaces and their optional configuration. \nA namespace can be a project or a group of projects (if using a monorepo structure).\nBy default a namespace bearing the same name as your organization will be created. \nIf you want to later rename your namespaces, do not change the key name or Terraform will destroy it and create a new one from scratch. As such it is recommended to use generic key names such as ns1, ns2."
+  description = <<-DESC
+    Namespaces and their optional configuration.
+    A namespace can be a project or a group of projects (if using a monorepo structure).
+    By default a namespace called "Main" will be created.
+    If you want to later rename your namespaces, do not change the key name or Terraform will destroy it and create a new one from scratch which will have dramatic effects on your repos.
+    For this reason, it is recommended to use generic key names such as ns1, ns2.
+    By default a main namespace will be created with a typical repo structure (infra/apps/ops).
+    DESC
   type = map(object({
     title        = string
     name         = optional(string)
