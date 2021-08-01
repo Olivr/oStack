@@ -36,7 +36,7 @@ data "flux_sync" "main" {
 # Computations
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
-  combined_infra = var.global.backends[keys(var.global.backends)[0]].combine_environments
+  combined_infra = !var.global.backends[keys(var.global.backends)[0]].separate_environments
 
   global_infra = merge([for backend in values(var.global.backends) :
     {
@@ -51,7 +51,7 @@ locals {
     [for env_id, env in var.environments :
       [for cluster in values(env.clusters) :
         { "${trim(backend.vcs_working_directory, "/")}/${cluster.name}.tf" = "" }
-      ] if backend_id == env_id || backend.combine_environments
+      ] if backend_id == env_id || !backend.separate_environments
     ]
   ]))...)
 
@@ -61,16 +61,16 @@ locals {
         {
           "${trim(backend.vcs_working_directory, "/")}/${cluster.name}.tf" = templatefile("${path.module}/templates/global/infra/cluster.tf.tpl", {
             base_dir      = local.base_dir
-            base_path     = backend.combine_environments ? "../.." : "../../.."
+            base_path     = !backend.separate_environments ? "../.." : "../../.."
             cluster       = cluster.name
             cluster_path  = "./${env.name}/${cluster.name}/${local.base_dir}"
             deploy_keys   = replace(jsonencode(var.deploy_keys[cluster.name]), "/(\".*?\"):/", "$1 = ") # https://brendanthompson.com/til/2021/3/hcl-enabled-tfe-variables
-            module_source = local.cluster_init_path != null ? (backend.combine_environments ? "./modules/init-cluster" : "../shared-modules/init-cluster") : var.init_cluster.module_source
+            module_source = local.cluster_init_path != null ? (!backend.separate_environments ? "./modules/init-cluster" : "../shared-modules/init-cluster") : var.init_cluster.module_source
             namespaces    = join("\",\"", local.environment_tenants[env.name])
             secrets       = replace(jsonencode(var.secrets[cluster.name]), "/(\".*?\"):/", "$1 = ") # https://brendanthompson.com/til/2021/3/hcl-enabled-tfe-variables
           })
         }
-      ] if backend_id == env_id || backend.combine_environments
+      ] if backend_id == env_id || !backend.separate_environments
     ]
   ]))...)
 

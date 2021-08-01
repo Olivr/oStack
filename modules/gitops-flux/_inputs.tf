@@ -41,7 +41,7 @@ variable "global" {
       branch_default_name = string
     })
     backends = map(object({
-      combine_environments  = bool
+      separate_environments = bool
       vcs_working_directory = string
     }))
   })

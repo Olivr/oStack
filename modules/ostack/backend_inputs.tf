@@ -29,13 +29,13 @@ variable "backend_configuration_base" {
   description = "Base backend configuration per provider."
   default     = { tfe = {} }
   type = map(object({
-    allow_destroy_plan   = optional(bool)
-    combine_environments = optional(bool)
-    env_vars             = optional(map(string))
-    speculative_enabled  = optional(bool)
-    tf_vars              = optional(map(string))
-    tf_vars_hcl          = optional(map(string))
-    tfe_oauth_token_id   = optional(string)
+    allow_destroy_plan    = optional(bool)
+    separate_environments = optional(bool)
+    env_vars              = optional(map(string))
+    speculative_enabled   = optional(bool)
+    tf_vars               = optional(map(string))
+    tf_vars_hcl           = optional(map(string))
+    tfe_oauth_token_id    = optional(string)
   }))
 
   validation {

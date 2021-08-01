@@ -91,7 +91,7 @@ locals {
 # These are computable statically (without any resource created or any external data fetched)
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
-  globalops_backends = !local.backend_configuration[var.backend_default_provider].combine_environments ? { for id, env in local.environments :
+  globalops_backends = local.backend_configuration[var.backend_default_provider].separate_environments ? { for id, env in local.environments :
     id => merge(local.globalops_defaults_backend, {
       _env                  = { id = id }
       name                  = "${local.globalops_defaults.name}-${env.name}"
@@ -253,7 +253,7 @@ locals {
               } if repo.type == "ops" && contains(repo._namespace.environments, cluster._env.id)
             ]...)
           )
-          } if backend.combine_environments == true || cluster._env.id == backend._env.id
+          } if !backend.separate_environments || cluster._env.id == backend._env.id
         ]...)), "/(\".*?\"):/", "$1 = ") # https://brendanthompson.com/til/2021/3/hcl-enabled-tfe-variables
       }
   ) }
@@ -300,7 +300,7 @@ locals {
             #     } if repo.type == "ops" && contains(repo._namespace.environments, cluster._env.id)
             # })
           }
-          } if backend.combine_environments == true || cluster._env.id == backend._env.id
+          } if !backend.separate_environments || cluster._env.id == backend._env.id
         ]...)), "/(\".*?\"):/", "$1 = ") # https://brendanthompson.com/til/2021/3/hcl-enabled-tfe-variables
     })
   }

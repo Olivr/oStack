@@ -127,7 +127,7 @@ locals {
 
   # Backends to create: Define multiple backends per environment if needed
   namespaces_repos_backend_env = { for repo_id, backend in local.namespaces_repos_backend_sensitive :
-    repo_id => !backend.combine_environments ? { for env_id, env in local.environments :
+    repo_id => backend.separate_environments ? { for env_id, env in local.environments :
       env_id => merge(backend, {
         name                  = "${backend._repo.name}-${env.name}"
         description           = "${backend._repo.description} (${env.name})"

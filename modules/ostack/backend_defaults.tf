@@ -25,7 +25,7 @@ locals {
   backend_configuration_defaults_base = {
     allow_destroy_plan    = false
     auto_apply            = var.continuous_delivery
-    combine_environments  = false
+    separate_environments = true
     create                = true
     description           = null
     env_vars              = {}
