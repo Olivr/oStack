@@ -4,11 +4,11 @@
 output "teams_flat" {
   description = "Teams created, per provider in flat format."
   value = lookup(local.dev, "disable_outputs", false) ? {} : (
-    { for provider in keys(local.teams) :
+    { for provider in keys(local.vcs_teams) :
       provider => { for team_id, team in local.teams_flat :
         team_id => merge(
           team,
-          local.teams[provider].teams[team_id]
+          local.vcs_teams[provider].teams[team_id]
         )
       }
     }
@@ -18,19 +18,19 @@ output "teams_flat" {
 output "teams_tree" {
   description = "Teams created, per provider in hierarchical format."
   value = lookup(local.dev, "disable_outputs", false) ? {} : (
-    { for provider in keys(local.teams) :
-      provider => { for parent_id, parent in local.teams_static :
+    { for provider in keys(local.vcs_teams) :
+      provider => { for parent_id, parent in local.teams :
         parent_id => merge(
           parent,
-          local.teams[provider].teams[parent_id],
+          local.vcs_teams[provider].teams[parent_id],
           { for child_id, child in lookup(parent, "teams", {}) :
             child_id => merge(
               child,
-              local.teams[provider].teams[child_id],
+              local.vcs_teams[provider].teams[child_id],
               { for grand_child_id, grand_child in lookup(child, "teams", {}) :
                 grand_child_id => merge(
                   grand_child,
-                  local.teams[provider].teams[grand_child_id]
+                  local.vcs_teams[provider].teams[grand_child_id]
                 )
               }
             )
@@ -45,10 +45,8 @@ output "teams_tree" {
 # Computations
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
-  teams = local.vcs_teams
-
   teams_flat = merge(flatten(
-    [for parent_id, parent in local.teams_static :
+    [for parent_id, parent in local.teams :
       concat(
         [
           {

@@ -41,7 +41,6 @@ locals {
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Computations
-# These are computable statically (without any resource created or any external data fetched)
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
   # Set access controls
@@ -51,8 +50,8 @@ locals {
 
   # Detect which VCS providers need a configuration repo
   globalconfig_providers = distinct(compact(flatten([
-    local.globalops_static.vcs.branch_protection ? local.globalops_static.vcs.provider : null,
-    [for repo in values(local.namespaces_repos_static) :
+    local.globalops.vcs.branch_protection ? local.globalops.vcs.provider : null,
+    [for repo in values(local.namespaces_repos) :
       repo.vcs.provider if repo.vcs.branch_protection
     ]
   ])))
@@ -60,14 +59,14 @@ locals {
   # Add sync workflow for each repo
   globalconfig_files_strict_workflows = { for provider in local.globalconfig_providers :
     provider => { for k, v in merge({
-      "${local.vcs_provider_configuration[provider].workflow_dir}/sync-${local.globalops_static.name}.yaml" = local.globalops_static.vcs.provider == provider && local.globalops_static.vcs.branch_protection ? templatefile("${path.module}/templates/${provider}/sync.yaml.tpl", {
+      "${local.vcs_provider_configuration[provider].workflow_dir}/sync-${local.globalops.name}.yaml" = local.globalops.vcs.provider == provider && local.globalops.vcs.branch_protection ? templatefile("${path.module}/templates/${provider}/sync.yaml.tpl", {
         config_branch = local.globalconfig_defaults_vcs.branch_default_name
-        repo_branch   = local.globalops_static.vcs.branch_default_name
-        repo_name     = local.globalops_static.name
-        automerge     = local.globalops_static.continuous_delivery
+        repo_branch   = local.globalops.vcs.branch_default_name
+        repo_name     = local.globalops.name
+        automerge     = local.globalops.continuous_delivery
       }) : null,
       },
-      merge([for id, repo in local.namespaces_repos_static :
+      merge([for id, repo in local.namespaces_repos :
         {
           "${local.vcs_provider_configuration[provider].workflow_dir}/sync-${repo.name}.yaml" = templatefile("${path.module}/templates/${provider}/sync.yaml.tpl", {
             config_branch = local.globalconfig_defaults_vcs.branch_default_name
@@ -82,17 +81,17 @@ locals {
 
   # Global ops repo files to add to the configuration repo
   globalconfig_files_strict_globalops = {
-    (local.globalops_static.vcs.provider) = (
-      local.globalops_static.vcs.branch_protection
+    (local.globalops.vcs.provider) = (
+      local.globalops.vcs.branch_protection
       ? { for file_path, content in local.globalops_files_strict :
-        "${local.globalops_static.name}/${file_path}" => content
+        "${local.globalops.name}/${file_path}" => content
       } : {}
     )
   }
 
   # Namespace repos files to add to the configuration repo
   globalconfig_files_strict_namespaces = { for provider in local.globalconfig_providers :
-    provider => merge([for id, repo in local.namespaces_repos_static :
+    provider => merge([for id, repo in local.namespaces_repos :
       { for file_path, content in lookup(local.namespaces_repos_files_strict, id, {}) :
         "${repo.name}/${file_path}" => content
       } if repo.vcs.provider == provider && repo.vcs.branch_protection
@@ -101,17 +100,17 @@ locals {
 
   # Global ops repo files to add to the configuration repo
   globalconfig_files_globalops = {
-    (local.globalops_static.vcs.provider) = (
-      local.globalops_static.vcs.branch_protection
+    (local.globalops.vcs.provider) = (
+      local.globalops.vcs.branch_protection
       ? { for file_path, content in local.globalops_files :
-        "${local.globalops_static.name}/${file_path}" => content
+        "${local.globalops.name}/${file_path}" => content
       } : {}
     )
   }
 
   # Namespace repos files to add to the configuration repo
   globalconfig_files_namespaces = { for provider in local.globalconfig_providers :
-    provider => merge([for id, repo in local.namespaces_repos_static :
+    provider => merge([for id, repo in local.namespaces_repos :
       { for file_path, content in lookup(local.namespaces_repos_files, id, {}) :
         "${repo.name}/${file_path}" => content
       } if repo.vcs.provider == provider && repo.vcs.branch_protection

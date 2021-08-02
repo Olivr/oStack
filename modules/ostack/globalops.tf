@@ -3,44 +3,34 @@
 # These variables are used in other files
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
-  # Static
-  globalops_backend_create = keys(local.globalops_static.backends)
+  globalops_backend_create = keys(local.globalops.backends)
 
-  globalops_static = merge(
+  globalops = merge(
     local.globalops_defaults,
     {
-      backends = local.globalops_backends
-      gitops   = local.globalops_defaults_gitops
-      vcs = merge(local.globalops_defaults_vcs, {
+      backends = { for id, backend in local.globalops_backends :
+        id => merge(backend, {
+          tf_vars_hcl      = local.globalops_backends_tf_vars_hcl[id]
+          sensitive_inputs = local.globalops_backend_sensitive_inputs[id]
+        })
+      }
+      vcs = merge(local.globalops_defaults.vcs, {
         branch_status_checks = setunion(local.globalops_defaults_vcs.branch_status_checks, local.globalops_status_checks)
+        files                = local.globalops_defaults_vcs.branch_protection ? {} : local.globalops_files
+        files_strict         = local.globalops_defaults_vcs.branch_protection ? {} : local.globalops_files_strict
+        deploy_keys          = local.globalops_vcs_deploy_keys
+        sensitive_inputs     = local.globalops_vcs_sensitive_inputs
+        repo_secrets         = local.globalops_vcs_repo_secrets
       })
     }
   )
-
-  # Dynamic
-  globalops_dynamic = {
-    vcs = {
-      files            = local.globalops_static.vcs.branch_protection ? {} : local.globalops_files
-      files_strict     = local.globalops_static.vcs.branch_protection ? {} : local.globalops_files_strict
-      deploy_keys      = local.globalops_vcs_deploy_keys
-      sensitive_inputs = local.globalops_vcs_sensitive_inputs
-      repo_secrets     = local.globalops_vcs_repo_secrets
-    }
-    backends = { for id in keys(local.globalops_static.backends) :
-      id => {
-        tf_vars_hcl      = local.globalops_backends_tf_vars_hcl[id]
-        sensitive_inputs = local.globalops_backend_sensitive_inputs[id]
-      }
-    }
-  }
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
-# Static defaults
-# These are computable statically (without any resource created or any external data fetched)
+# Defaults
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
-  globalops_defaults = {
+  globalops_defaults_base = {
     name                = "${var.prefix}${local.i18n.repo_globalops_name}"
     description         = local.i18n.repo_globalops_description
     continuous_delivery = var.continuous_delivery
@@ -48,9 +38,9 @@ locals {
 
   globalops_defaults_vcs = merge(local.vcs_configuration[var.vcs_default_provider], {
     provider         = var.vcs_default_provider
-    http_url         = format(local.vcs_provider_configuration[var.vcs_default_provider].http_format, local.globalops_defaults.name)
-    ssh_url          = format(local.vcs_provider_configuration[var.vcs_default_provider].ssh_format, local.globalops_defaults.name)
-    full_name        = "${local.vcs_organization_name}/${local.globalops_defaults.name}"
+    http_url         = format(local.vcs_provider_configuration[var.vcs_default_provider].http_format, local.globalops_defaults_base.name)
+    ssh_url          = format(local.vcs_provider_configuration[var.vcs_default_provider].ssh_format, local.globalops_defaults_base.name)
+    full_name        = "${local.vcs_organization_name}/${local.globalops_defaults_base.name}"
     auto_init        = true
     repo_is_template = false
     repo_template    = local.vcs_provider_configuration[var.vcs_default_provider].repo_templates.globalops
@@ -73,35 +63,40 @@ locals {
 
   globalops_defaults_gitops = merge(local.gitops_configuration[var.gitops_default_provider], {
     infra_dir         = "_ostack/bootstrap-clusters"
-    namespaces        = local.namespaces_static
+    namespaces        = local.namespaces
     environments      = local.environments
     cluster_init_path = lookup(local.dev, "module_cluster_init", null)
   })
 
   globalops_defaults_backend = merge(local.backend_configuration[var.backend_default_provider], {
-    name                  = local.globalops_defaults.name
+    name                  = local.globalops_defaults_base.name
     provider              = var.backend_default_provider
-    description           = local.globalops_defaults.description
+    description           = local.globalops_defaults_base.description
     vcs_working_directory = local.globalops_defaults_gitops.infra_dir
+  })
+
+  globalops_defaults = merge(local.globalops_defaults_base, {
+    vcs      = local.globalops_defaults_vcs
+    gitops   = local.globalops_defaults_gitops
+    backends = local.globalops_backends
   })
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
-# Static computations
-# These are computable statically (without any resource created or any external data fetched)
+# Computations
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
   # Set access controls
   globalops_teams_admins      = ["global_admin"]
   globalops_teams_maintainers = ["global_manager", "global_infra_lead"]
   globalops_teams_writers     = ["global_ops", "global_infra"]
-  globalops_teams_readers     = keys(local.teams_static) # All teams can read
+  globalops_teams_readers     = keys(local.teams) # All teams can read
 
   globalops_backends = local.backend_configuration[var.backend_default_provider].separate_environments ? { for id, env in local.environments :
     id => merge(local.globalops_defaults_backend, {
       _env                  = { id = id }
-      name                  = "${local.globalops_defaults.name}-${env.name}"
-      description           = "${local.globalops_defaults.description} (${env.name})"
+      name                  = "${local.globalops_defaults_base.name}-${env.name}"
+      description           = "${local.globalops_defaults_base.description} (${env.name})"
       vcs_working_directory = "${local.globalops_defaults_gitops.infra_dir}/${env.name}"
       vcs_trigger_paths     = ["${local.globalops_defaults_gitops.infra_dir}/shared-modules"]
       auto_apply            = env.continuous_delivery
@@ -111,13 +106,7 @@ locals {
   globalops_status_checks = [for backend in local.globalops_backends :
     format(local.backend_provider_configuration[backend.provider].status_check_format, backend.name)
   ]
-}
 
-# ---------------------------------------------------------------------------------------------------------------------
-# Dynamic computations
-# These may require an output from a data/resource/module
-# ---------------------------------------------------------------------------------------------------------------------
-locals {
   globalops_files_prepare = merge(
     lookup(local.dev, "all_files_strict", false) ? null : local.gitops.global_files,
     lookup(local.dev, "all_files_strict", false) ? null : local.vcs_configuration[var.vcs_default_provider].files
@@ -161,7 +150,7 @@ locals {
   globalops_vcs_deploy_keys = merge(
     {
       _ci = {
-        title    = "CI / GitHub Actions (${local.globalops_static.name})"
+        title    = "CI / GitHub Actions (${local.globalops_defaults_base.name})"
         ssh_key  = tls_private_key.cluster_keys["_ci"].public_key_openssh
         readonly = true
       }
@@ -191,14 +180,14 @@ locals {
   })
 
   globalops_gitops_local_sensitive_inputs = merge(
-    { "${local.globalops_static.name}_private_key" = sensitive(tls_private_key.cluster_keys["_ci"].private_key_pem) },
-    { for id, repo in local.namespaces_repos_static :
+    { "${local.globalops_defaults_base.name}_private_key" = sensitive(tls_private_key.cluster_keys["_ci"].private_key_pem) },
+    { for id, repo in local.namespaces_repos :
       "${repo.name}_private_key" => sensitive(tls_private_key.ns_keys["${id}__ci"].private_key_pem) if repo.type == "ops"
     }
   )
 
   globalops_gitops_local_vars_template = jsonencode({
-    cluster_path = "./${values(local.environments)[0].name}/${values(values(local.environments)[0].clusters)[0].name}/${local.globalops_static.gitops.base_dir}"
+    cluster_path = "./${values(local.environments)[0].name}/${values(values(local.environments)[0].clusters)[0].name}/${local.globalops_defaults_gitops.base_dir}"
     sensitive_inputs = merge({ for k in keys(local.globalops_gitops_local_sensitive_inputs) :
       k => ""
     })
@@ -212,10 +201,10 @@ locals {
           namespace   = "flux-system"
           known_hosts = local.vcs_provider_configuration[var.vcs_default_provider].known_hosts
           public_key  = base64encode(tls_private_key.cluster_keys[cluster_id].public_key_pem)
-          private_key = "sensitive::${local.globalops_static.name}_private_key"
+          private_key = "sensitive::${local.globalops_defaults_base.name}_private_key"
         }
       },
-      { for repo_id, repo in local.namespaces_repos_static :
+      { for repo_id, repo in local.namespaces_repos :
         repo_id => {
           name        = "flux-${repo.name}"
           namespace   = repo._namespace.name
@@ -231,9 +220,9 @@ locals {
       globalops_vcs_token = {
         name      = "vcs-token"
         namespace = "flux-system"
-        data      = { token = "sensitive::${local.globalops_static.name}_vcs_token" }
+        data      = { token = "sensitive::${local.globalops_defaults_base.name}_vcs_token" }
       }
-      }, { for repo_id, repo in local.namespaces_repos_static :
+      }, { for repo_id, repo in local.namespaces_repos :
       "${repo_id}_vcs_token" => {
         name      = "vcs-token-${replace(repo.name, "/[\\s_\\.]/", "-")}"
         namespace = "flux-system"
@@ -249,10 +238,10 @@ locals {
       {
         sensitive_inputs_per_cluster = replace(jsonencode(merge([for cluster_id, cluster in local.environments_clusters_create : {
           (cluster.name) = merge({
-            kube_token                                   = sensitive(local.clusters_k8s[cluster_id].kube_token)
-            "${local.globalops_static.name}_private_key" = sensitive(tls_private_key.cluster_keys[cluster_id].private_key_pem)
-            "${local.globalops_static.name}_vcs_token"   = sensitive(var.vcs_write_token[var.vcs_default_provider])
-            }, merge([for id, repo in local.namespaces_repos_static :
+            kube_token                                          = sensitive(local.clusters_k8s[cluster_id].kube_token)
+            "${local.globalops_defaults_base.name}_private_key" = sensitive(tls_private_key.cluster_keys[cluster_id].private_key_pem)
+            "${local.globalops_defaults_base.name}_vcs_token"   = sensitive(var.vcs_write_token[var.vcs_default_provider])
+            }, merge([for id, repo in local.namespaces_repos :
               {
                 "${repo.name}_private_key" = sensitive(tls_private_key.ns_keys["${id}_${cluster_id}"].private_key_pem)
                 "${repo.name}_vcs_token"   = sensitive(var.vcs_write_token[repo.vcs.provider])

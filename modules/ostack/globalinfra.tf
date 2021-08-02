@@ -2,8 +2,7 @@
 # Main variables
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
-  # Static
-  globalinfra_static = {
+  globalinfra = {
     name        = local.globalinfra_repo_name
     description = format(local.i18n.repo_globalinfra_description, var.organization_title)
     vcs = merge(local.vcs_configuration[var.vcs_default_provider], {
@@ -19,8 +18,7 @@ locals {
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
-# Static computations
-# These are computable statically (without any resource created or any external data fetched)
+# Computations
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
   # Set access controls

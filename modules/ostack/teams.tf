@@ -2,7 +2,7 @@
 # Main variables
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
-  teams_static = merge(
+  teams = merge(
     local.global_teams,
     local.namespace_teams
   )
@@ -61,7 +61,7 @@ locals {
   }
 
   # Namespace-specific teams
-  namespace_teams = merge([for id, config in local.namespaces_static :
+  namespace_teams = merge([for id, config in local.namespaces :
     {
       "${id}" = {
         title       = format(local.i18n.team_ns_name, "${local.teams_prefix}${config.title}")

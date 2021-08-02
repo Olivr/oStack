@@ -3,33 +3,27 @@
 # These variables are used in other files
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
-  # Static
-  namespaces_static = local.namespaces_complex
+  namespaces = local.namespaces_complex
 
-  namespaces_repos_static = local.namespaces_repos_complex
+  namespaces_repos = local.namespaces_repos_complex
 
-  namespaces_backends_create = merge([for repo_id, repo in local.namespaces_repos_static :
+  namespaces_backends_create = merge([for repo_id, repo in local.namespaces_repos :
     { for id, backend in repo.backends :
       "${repo_id}_${id}" => merge(backend, { repo_id = repo_id }) if backend.create == true
     }
   ]...)
 
-  # Dynamic
-  namespaces_repos_dynamic = { for repo_id, repo in local.namespaces_repos_static :
+  namespaces_repos_dynamic = { for repo_id, repo in local.namespaces_repos :
     repo_id => {
-      vcs = {
-        # If repo is protected by status checks pr PR reviews, don't write files (they are added to the configuration repo instead)
-        files        = repo.vcs.branch_protection ? {} : lookup(local.namespaces_repos_files, repo_id, {})
-        files_strict = repo.vcs.branch_protection ? {} : lookup(local.namespaces_repos_files_strict, repo_id, {})
-        deploy_keys  = merge(repo.vcs.deploy_keys, lookup(local.namespaces_repos_deploy_keys, repo_id, null))
-      }
+      files        = repo.vcs.branch_protection ? {} : lookup(local.namespaces_repos_files, repo_id, {})
+      files_strict = repo.vcs.branch_protection ? {} : lookup(local.namespaces_repos_files_strict, repo_id, {})
+      deploy_keys  = merge(repo.vcs.deploy_keys, lookup(local.namespaces_repos_vcs_deploy_keys, repo_id, null))
     }
   }
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
-# Static defaults
-# These are computable statically (without any resource created or any external data fetched)
+# Defaults
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
   namespaces_simple = { for id, namespace in var.namespaces :
@@ -46,8 +40,7 @@ locals {
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
-# Static computations
-# These are computable statically (without any resource created or any external data fetched)
+# Computations
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
   # Prepare repos
@@ -175,6 +168,10 @@ locals {
         name => lookup(vcs.file_templates, name, null) != null ? vcs.file_templates[name] : default_content
       }
 
+      sensitive_inputs = { for k, v in vcs.repo_secrets :
+        trimprefix(v, "sensitive::") => sensitive(merge(vcs.sensitive_inputs, var.sensitive_inputs)[trimprefix(v, "sensitive::")]) if can(regex("^sensitive::", v))
+      }
+
       tags = lookup(vcs, "tags", null) != null ? vcs.tags : setunion(
         local.vcs_configuration[vcs.provider].tags,
         [for env in vcs._repo._namespace.environments : local.environments[env].name],
@@ -187,19 +184,8 @@ locals {
     })
   }
 
-  # VCS repos to create: Get relevant sensitive inputs
-  namespaces_repos_vcs_sensitive = { for id, vcs in local.namespaces_repos_vcs_complex :
-    id => merge(vcs,
-      {
-        sensitive_inputs = { for k, v in vcs.repo_secrets :
-          trimprefix(v, "sensitive::") => sensitive(merge(vcs.sensitive_inputs, var.sensitive_inputs)[trimprefix(v, "sensitive::")]) if can(regex("^sensitive::", v))
-        }
-      }
-    )
-  }
-
   # VCS repos to create: Specify apps-specific values
-  namespaces_repos_vcs_apps = { for id, vcs in local.namespaces_repos_vcs_sensitive :
+  namespaces_repos_vcs_apps = { for id, vcs in local.namespaces_repos_vcs_complex :
     id => {
       team_configuration = {
         admin    = ["global_admin"]
@@ -211,7 +197,7 @@ locals {
   }
 
   # VCS repos to create: Specify infra-specific values
-  namespaces_repos_vcs_infra = { for id, vcs in local.namespaces_repos_vcs_sensitive :
+  namespaces_repos_vcs_infra = { for id, vcs in local.namespaces_repos_vcs_complex :
     id => {
       branch_status_checks = setunion(vcs.branch_status_checks, [for backend in local.namespaces_repos_backend_env[id] :
         format(local.backend_provider_configuration[backend.provider].status_check_format, backend.name)
@@ -226,7 +212,7 @@ locals {
   }
 
   # VCS repos to create: Specify ops-specific values
-  namespaces_repos_vcs_ops = { for id, vcs in local.namespaces_repos_vcs_sensitive :
+  namespaces_repos_vcs_ops = { for id, vcs in local.namespaces_repos_vcs_complex :
     id => {
       team_configuration = {
         admin    = ["global_admin"]
@@ -257,10 +243,10 @@ locals {
         } : {}
 
         vcs = { for k, v in merge(
-          local.namespaces_repos_vcs_sensitive[id],
+          local.namespaces_repos_vcs_complex[id],
           lookup(local.namespaces_repos_vcs_apps, id, {}),
           lookup(local.namespaces_repos_vcs_infra, id, {}),
-          lookup(local.namespaces_repos_vcs_ops, id, {})
+          lookup(local.namespaces_repos_vcs_ops, id, {}),
         ) : k => v if k != "_repo" } # Remove the _repo key
       },
     )
@@ -274,15 +260,9 @@ locals {
       }
     })
   }
-}
 
-# ---------------------------------------------------------------------------------------------------------------------
-# Dynamic computations
-# These may require an output from a data/resource/module
-# ---------------------------------------------------------------------------------------------------------------------
-locals {
   # Prepare CODEONWERS files for managing code reviews
-  namespaces_repos_files_codeowners_prepare = { for id, repo in local.namespaces_repos_static :
+  namespaces_repos_files_codeowners_prepare = { for id, repo in local.namespaces_repos :
     id => { for path, owners in repo.vcs.reviewers :
       "CODEOWNERS" => join(" @${local.vcs_organization_name}/", concat([path], [for owner in owners : local.vcs_teams[repo.vcs.provider].teams[owner].slug]))...
     }
@@ -294,12 +274,12 @@ locals {
   }
 
   # Files generated by GitOps module
-  namespaces_repos_files_gitops = { for id, repo in local.namespaces_repos_static :
+  namespaces_repos_files_gitops = { for id, repo in local.namespaces_repos :
     id => local.gitops.ns_files[repo._namespace.id][repo.id] if repo.type == "ops"
   }
 
   # Raw files per repo
-  namespaces_repos_files_prepare = { for id, repo in local.namespaces_repos_static :
+  namespaces_repos_files_prepare = { for id, repo in local.namespaces_repos :
     id => merge(
       lookup(local.dev, "all_files_strict", false) ? null : lookup(local.namespaces_repos_files_gitops, id, {}),
       lookup(local.dev, "all_files_strict", false) ? null : repo.vcs.files
@@ -310,15 +290,15 @@ locals {
   namespaces_repos_files_formatted = { for id, files in local.namespaces_repos_files_prepare :
     id => { for path, content in files :
       (path) => try(join("\n", concat(
-        compact([lookup(local.namespaces_repos_static[id].file_templates, "${trimprefix(regex("/?[^/^]+$", lower(path)), "/")}_header", "")]),
+        compact([lookup(local.namespaces_repos[id].file_templates, "${trimprefix(regex("/?[^/^]+$", lower(path)), "/")}_header", "")]),
         content,
-        compact([lookup(local.namespaces_repos_static[id].file_templates, "${trimprefix(regex("/?[^/^]+$", lower(path)), "/")}_footer", "")])
+        compact([lookup(local.namespaces_repos[id].file_templates, "${trimprefix(regex("/?[^/^]+$", lower(path)), "/")}_footer", "")])
       )), content)
     }
   }
 
   # Add template files if a local template was used
-  namespaces_repos_files = { for id, repo in local.namespaces_repos_static :
+  namespaces_repos_files = { for id, repo in local.namespaces_repos :
     id => merge(
       lookup(local.dev, "all_files_strict", false) ? null : lookup(local.vcs_templates_files, repo.type, null),
       local.namespaces_repos_files_formatted[id]
@@ -326,7 +306,7 @@ locals {
   }
 
   # Raw files per repo
-  namespaces_repos_files_strict_prepare = { for id, repo in local.namespaces_repos_static :
+  namespaces_repos_files_strict_prepare = { for id, repo in local.namespaces_repos :
     id => merge(
       local.namespaces_repos_files_codeowners[id],
       repo.type == "ops" ? local.gitops.ns_files_strict[repo._namespace.id][repo.id] : {},
@@ -340,26 +320,26 @@ locals {
   namespaces_repos_files_strict_formatted = { for id, files in local.namespaces_repos_files_strict_prepare :
     id => { for path, content in files :
       (path) => try(join("\n", concat(
-        compact([lookup(local.namespaces_repos_static[id].file_templates, "${trimprefix(regex("/?[^/^]+$", lower(path)), "/")}_header", "")]),
+        compact([lookup(local.namespaces_repos[id].file_templates, "${trimprefix(regex("/?[^/^]+$", lower(path)), "/")}_header", "")]),
         content,
-        compact([lookup(local.namespaces_repos_static[id].file_templates, "${trimprefix(regex("/?[^/^]+$", lower(path)), "/")}_footer", "")])
+        compact([lookup(local.namespaces_repos[id].file_templates, "${trimprefix(regex("/?[^/^]+$", lower(path)), "/")}_footer", "")])
       )), content)
     }
   }
 
   # Add template files if a local template was used
-  namespaces_repos_files_strict = { for id, repo in local.namespaces_repos_static :
+  namespaces_repos_files_strict = { for id, repo in local.namespaces_repos :
     id => merge(
       lookup(local.dev, "all_files_strict", false) ? lookup(local.vcs_templates_files, repo.type, null) : null,
       local.namespaces_repos_files_strict_formatted[id]
     )
   }
 
-  namespaces_repos_deploy_keys = { for id, repo in local.namespaces_repos_static :
+  namespaces_repos_vcs_deploy_keys = { for id, repo in local.namespaces_repos_simple :
     id => merge(
       {
         _ci = {
-          title    = "CI / GitHub Actions (${local.globalops_static.name}, ${repo.name})"
+          title    = "CI / GitHub Actions (${local.globalops.name}, ${repo.name})"
           ssh_key  = tls_private_key.ns_keys["${id}__ci"].public_key_openssh
           readonly = true
         }

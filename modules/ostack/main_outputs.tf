@@ -3,7 +3,7 @@
 # ---------------------------------------------------------------------------------------------------------------------
 # output "namespaces" {
 #   description = "Full configuration for all namespaces."
-#   value = { for ns, config in local.namespaces_static :
+#   value = { for ns, config in local.namespaces :
 #     ns => merge(config, {
 #       apps = merge(config.apps, {
 #         repo_url       = try(local.ns_repos[config.apps.repo_name].html_url, null)

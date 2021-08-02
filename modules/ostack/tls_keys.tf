@@ -25,7 +25,7 @@ locals {
   ns_keys_create = toset(
     [
       for pair in setproduct(
-        [for id, repo in local.namespaces_repos_static : id if repo.type == "ops"],
+        [for id, repo in local.namespaces_repos : id if repo.type == "ops"],
         local.environments_keys_create
       ) : "${pair[0]}_${pair[1]}"
     ]
