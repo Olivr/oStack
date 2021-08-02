@@ -5,7 +5,7 @@ locals {
   # Static
   globalinfra_static = {
     name        = local.globalinfra_repo_name
-    description = format(local.i18n.repo_global_infra_description, var.organization_title)
+    description = format(local.i18n.repo_globalinfra_description, var.organization_title)
     vcs = merge(local.vcs_configuration[var.vcs_default_provider], {
       repo_exists = true
       team_configuration = {

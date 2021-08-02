@@ -11,7 +11,7 @@ locals {
     repo_globalops_description         = "Cluster management"
     repo_globalconfig_name             = "global-config"
     repo_globalconfig_description      = "oStack-managed configuration repository. Not for human eyes."
-    repo_global_infra_description      = "%s global infrastructure (Manage oStack)."
+    repo_globalinfra_description       = "%s global infrastructure (Manage oStack)."
     repo_infra_description             = "%s infrastructure"
     repo_ops_description               = "%s application deployments"
     tag_apps_buzz                      = "DevOps"
