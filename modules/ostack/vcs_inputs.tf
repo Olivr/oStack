@@ -82,7 +82,7 @@ variable "vcs_configuration_base" {
     repo_templates = optional(object({
       apps         = optional(string)
       globalconfig = optional(string)
-      global_ops   = optional(string)
+      globalops    = optional(string)
       infra        = optional(string)
       ops          = optional(string)
     }))

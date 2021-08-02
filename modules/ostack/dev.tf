@@ -24,7 +24,7 @@ locals {
   # Defaults for dev mode
   dev_mode = {
     template_globalconfig = null
-    template_global_ops   = "../../templates/global-ops"
+    template_globalops    = "../../templates/global-ops"
     template_apps         = "../../templates/ns-apps"
     template_infra        = "../../templates/ns-infra"
     template_ops          = "../../templates/ns-ops"

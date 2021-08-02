@@ -19,11 +19,6 @@ locals {
   vcs_repo_globalops = merge(
     module.vcs_repo_globalops_github
   )["globalops"]
-
-  # The global infra repo is used to manage the organizations's infrastructure (oStack)
-  vcs_repo_globalinfra = local.globalinfra_repo_name != null ? merge(
-    module.vcs_repo_globalinfra_github
-  )[local.globalinfra_repo_name] : {}
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -47,7 +42,6 @@ locals {
 locals {
   vcs_providers_in_use = distinct(flatten([
     local.globalops_static.vcs.provider,
-    //keys(local.globalconfig),
     [for repo in values(local.namespaces_repos_static) : repo.vcs.provider]
   ]))
 }

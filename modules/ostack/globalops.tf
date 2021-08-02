@@ -41,8 +41,8 @@ locals {
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
   globalops_defaults = {
-    name                = "${var.prefix}${local.i18n.repo_global_ops_name}"
-    description         = local.i18n.repo_global_ops_description
+    name                = "${var.prefix}${local.i18n.repo_globalops_name}"
+    description         = local.i18n.repo_globalops_description
     continuous_delivery = var.continuous_delivery
   }
 
@@ -53,7 +53,7 @@ locals {
     full_name        = "${local.vcs_organization_name}/${local.globalops_defaults.name}"
     auto_init        = true
     repo_is_template = false
-    repo_template    = local.vcs_provider_configuration[var.vcs_default_provider].repo_templates.global_ops
+    repo_template    = local.vcs_provider_configuration[var.vcs_default_provider].repo_templates.globalops
     tags = setunion(
       local.vcs_configuration[var.vcs_default_provider].tags,
       [
@@ -118,12 +118,12 @@ locals {
 # These may require an output from a data/resource/module
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
-  global_ops_files_prepare = merge(
+  globalops_files_prepare = merge(
     lookup(local.dev, "all_files_strict", false) ? null : local.gitops.global_files,
     lookup(local.dev, "all_files_strict", false) ? null : local.vcs_configuration[var.vcs_default_provider].files
   )
 
-  globalops_files_formatted = { for file_path, content in local.global_ops_files_prepare :
+  globalops_files_formatted = { for file_path, content in local.globalops_files_prepare :
     (file_path) => try(join("\n", concat(
       compact([lookup(local.globalops_defaults_vcs.file_templates, "${trimprefix(regex("/?[^/^]+$", lower(file_path)), "/")}_header", "")]),
       content,
@@ -133,7 +133,7 @@ locals {
 
   # Add template files if a local template was used
   globalops_files = merge(
-    lookup(local.dev, "all_files_strict", false) ? null : lookup(local.vcs_templates_files, "global_ops", null),
+    lookup(local.dev, "all_files_strict", false) ? null : lookup(local.vcs_templates_files, "globalops", null),
     local.globalops_files_formatted
   )
 
@@ -154,7 +154,7 @@ locals {
 
   # Add template files if a local template was used
   globalops_files_strict = merge(
-    lookup(local.dev, "all_files_strict", false) ? lookup(local.vcs_templates_files, "global_ops", null) : null,
+    lookup(local.dev, "all_files_strict", false) ? lookup(local.vcs_templates_files, "globalops", null) : null,
     local.globalops_files_strict_formatted
   )
 
@@ -207,7 +207,7 @@ locals {
   globalops_gitops_deploy_keys = { for cluster_id, cluster in merge(local.environments_clusters_create, { _ci = { name = "_ci" } }) :
     (cluster.name) => merge(
       {
-        "global_ops" = {
+        "globalops" = {
           name        = "flux-system"
           namespace   = "flux-system"
           known_hosts = local.vcs_provider_configuration[var.vcs_default_provider].known_hosts
