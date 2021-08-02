@@ -68,6 +68,7 @@
 | --- | --- |
 | <a name="output_globalconfig"></a> [globalconfig](#output_globalconfig) | Global configuration repo(s). |
 | <a name="output_globalconfig_sensitive"></a> [globalconfig_sensitive](#output_globalconfig_sensitive) | Global configuration repo(s) sensitive values. |
-| <a name="output_teams"></a> [teams](#output_teams) | VCS teams created. |
+| <a name="output_teams_flat"></a> [teams_flat](#output_teams_flat) | Teams created, per provider in flat format. |
+| <a name="output_teams_tree"></a> [teams_tree](#output_teams_tree) | Teams created, per provider in hierarchical format. |
 
 <!-- END_TF_DOCS -->

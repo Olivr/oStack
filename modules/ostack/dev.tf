@@ -31,5 +31,6 @@ locals {
     module_cluster_init    = "../init-cluster-flux"
     all_files_strict       = true # Any file that is created should be tracked by Terraform
     globalinfra_repo_name  = null # Disables configuring the global-infra repo which is usually not created when developing
+    disable_outputs        = true # It is quite annoying to have long outputs printed out after an apply/plan
   }
 }

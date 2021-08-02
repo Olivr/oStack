@@ -3,13 +3,13 @@
 # ---------------------------------------------------------------------------------------------------------------------
 output "globalconfig" {
   description = "Global configuration repo(s)."
-  value       = local.globalconfig_output
+  value       = lookup(local.dev, "disable_outputs", false) ? {} : local.globalconfig_output
 }
 
 output "globalconfig_sensitive" {
   description = "Global configuration repo(s) sensitive values."
   sensitive   = true
-  value = { for provider in local.global_config_providers :
+  value = lookup(local.dev, "disable_outputs", false) ? {} : { for provider in local.global_config_providers :
     provider => {
       vcs = {
         sensitive_inputs = try(local.globalconfig_static[provider].vcs.sensitive_inputs, {})

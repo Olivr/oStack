@@ -23,7 +23,9 @@
 
 # output "teams" {
 #   description = "VCS teams created."
-#   value       = local.vcs_teams.teams
+#   value = { for provider, output in local.vcs_teams :
+#     provider => output.teams
+#   }
 # }
 
 # output "environments" {
