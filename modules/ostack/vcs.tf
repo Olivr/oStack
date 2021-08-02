@@ -19,6 +19,11 @@ locals {
   vcs_repo_globalops = merge(
     module.vcs_repo_globalops_github
   )["globalops"]
+
+  # The global infra repo is used to manage the organizations's infrastructure (oStack)
+  vcs_repo_globalinfra = local.globalinfra_repo_name != null ? merge(
+    module.vcs_repo_globalinfra_github
+  )[local.globalinfra_repo_name] : {}
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -27,6 +32,7 @@ locals {
 locals {
   # Github
   vcs_repo_globalops_github    = var.vcs_default_provider == "github" ? toset(["globalops"]) : toset([])
+  vcs_repo_globalinfra_github  = var.vcs_default_provider == "github" ? toset(compact([local.globalinfra_repo_name])) : toset([])
   vcs_repo_globalconfig_github = contains(keys(local.globalconfig_static), "github") ? { github = local.globalconfig_static["github"] } : {}
   vcs_teams_github             = contains(local.vcs_providers_in_use, "github") ? { github = local.teams_static } : {}
   vcs_repos_namespaces_github = { for id, repo in local.namespaces_repos_static :

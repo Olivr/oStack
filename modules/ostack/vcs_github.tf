@@ -52,6 +52,49 @@ module "vcs_repos_namespaces_github" {
   }
 }
 
+module "vcs_repo_globalinfra_github" {
+  source = "../repo-github"
+
+  for_each = local.vcs_repo_globalinfra_github
+
+  allow_merge_commit               = local.globalinfra_static.vcs.repo_allow_merge_commit
+  allow_rebase_merge               = local.globalinfra_static.vcs.repo_allow_rebase_merge
+  allow_squash_merge               = local.globalinfra_static.vcs.repo_allow_squash_merge
+  archive_on_destroy               = local.globalinfra_static.vcs.repo_archive_on_destroy
+  auto_init                        = local.globalinfra_static.vcs.repo_auto_init
+  branch_delete_on_merge           = local.globalinfra_static.vcs.branch_delete_on_merge
+  branch_protection                = local.globalinfra_static.vcs.branch_protection
+  branch_protection_enforce_admins = local.globalinfra_static.vcs.branch_protection_enforce_admins
+  branch_review_count              = local.globalinfra_static.vcs.branch_review_count
+  branch_status_checks             = local.globalinfra_static.vcs.branch_status_checks
+  deploy_keys                      = local.globalinfra_static.vcs.deploy_keys
+  description                      = local.globalinfra_static.description
+  files                            = local.globalinfra_static.vcs.files
+  files_strict                     = local.globalinfra_static.vcs.files_strict
+  has_issues                       = local.globalinfra_static.vcs.repo_enable_issues
+  has_projects                     = local.globalinfra_static.vcs.repo_enable_projects
+  has_wiki                         = local.globalinfra_static.vcs.repo_enable_wikis
+  homepage_url                     = local.globalinfra_static.vcs.repo_homepage_url
+  is_template                      = local.globalinfra_static.vcs.repo_is_template
+  issue_labels                     = local.globalinfra_static.vcs.repo_issue_labels
+  name                             = local.globalinfra_static.name
+  private                          = local.globalinfra_static.vcs.repo_private
+  repo_exists                      = local.globalinfra_static.vcs.repo_exists
+  secrets                          = local.globalinfra_static.vcs.repo_secrets
+  sensitive_inputs                 = local.globalinfra_static.vcs.sensitive_inputs
+  teams                            = module.vcs_teams_github["github"].teams
+  template                         = local.globalinfra_static.vcs.repo_template
+  topics                           = local.globalinfra_static.vcs.tags
+  vulnerability_alerts             = local.globalinfra_static.vcs.repo_vulnerability_alerts
+  team_permissions = {
+    admin    = local.globalinfra_static.vcs.team_configuration.admin
+    maintain = local.globalinfra_static.vcs.team_configuration.maintain
+    pull     = local.globalinfra_static.vcs.team_configuration.read
+    push     = local.globalinfra_static.vcs.team_configuration.write
+    triage   = []
+  }
+}
+
 module "vcs_repo_globalops_github" {
   source = "../repo-github"
 

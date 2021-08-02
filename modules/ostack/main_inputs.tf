@@ -103,3 +103,13 @@ variable "continuous_delivery" {
     condition     = var.continuous_delivery != null
   }
 }
+
+variable "globalinfra_repo_name" {
+  description = <<-DESC
+    Name of the global infra repo so that oStack can apply its settings to it (eg. branch protection, team access)
+    It must be created already on the default VCS provider.
+    Set to `null` if you don't want oStack to manage this repo at all.
+    DESC
+  type        = string
+  default     = "global-infra"
+}
