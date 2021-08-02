@@ -66,8 +66,17 @@
 
 | Name | Description |
 | --- | --- |
+| <a name="output_environments"></a> [environments](#output_environments) | Full configuration for each environment. |
 | <a name="output_globalconfig"></a> [globalconfig](#output_globalconfig) | Global configuration repo(s). |
-| <a name="output_globalconfig_sensitive"></a> [globalconfig_sensitive](#output_globalconfig_sensitive) | Global configuration repo(s) sensitive values. |
+| <a name="output_globalconfig_files"></a> [globalconfig_files](#output_globalconfig_files) | Global configuration repo(s) files. |
+| <a name="output_globalconfig_files_strict"></a> [globalconfig_files_strict](#output_globalconfig_files_strict) | Global configuration repo(s) strictly tracked files. |
+| <a name="output_globalops"></a> [globalops](#output_globalops) | Global operations repo configuration. |
+| <a name="output_globalops_files"></a> [globalops_files](#output_globalops_files) | Global operations repo files. |
+| <a name="output_globalops_files_strict"></a> [globalops_files_strict](#output_globalops_files_strict) | Global operations repo strictly tracked files. |
+| <a name="output_namespaces"></a> [namespaces](#output_namespaces) | Full configuration for all namespaces. |
+| <a name="output_namespaces_files"></a> [namespaces_files](#output_namespaces_files) | Namespaces files are in a separate output for easier readability of the main `namespaces` output. |
+| <a name="output_namespaces_files_strict"></a> [namespaces_files_strict](#output_namespaces_files_strict) | Namespaces files are in a separate output for easier readability of the main `namespaces` output. |
+| <a name="output_sensitive_outputs"></a> [sensitive_outputs](#output_sensitive_outputs) | Sensitive outputs. |
 | <a name="output_teams_flat"></a> [teams_flat](#output_teams_flat) | Teams created, per provider in flat format. |
 | <a name="output_teams_tree"></a> [teams_tree](#output_teams_tree) | Teams created, per provider in hierarchical format. |
 

@@ -3,49 +3,19 @@
 # ---------------------------------------------------------------------------------------------------------------------
 output "teams_flat" {
   description = "Teams created, per provider in flat format."
-  value = lookup(local.dev, "disable_outputs", false) ? {} : (
-    { for provider in keys(local.vcs_teams) :
-      provider => { for team_id, team in local.teams_flat :
-        team_id => merge(
-          team,
-          local.vcs_teams[provider].teams[team_id]
-        )
-      }
-    }
-  )
+  value       = lookup(local.dev, "disable_outputs", false) ? {} : local.teams_outputs_flat
 }
 
 output "teams_tree" {
   description = "Teams created, per provider in hierarchical format."
-  value = lookup(local.dev, "disable_outputs", false) ? {} : (
-    { for provider in keys(local.vcs_teams) :
-      provider => { for parent_id, parent in local.teams :
-        parent_id => merge(
-          parent,
-          local.vcs_teams[provider].teams[parent_id],
-          { for child_id, child in lookup(parent, "teams", {}) :
-            child_id => merge(
-              child,
-              local.vcs_teams[provider].teams[child_id],
-              { for grand_child_id, grand_child in lookup(child, "teams", {}) :
-                grand_child_id => merge(
-                  grand_child,
-                  local.vcs_teams[provider].teams[grand_child_id]
-                )
-              }
-            )
-          }
-        )
-      }
-    }
-  )
+  value       = lookup(local.dev, "disable_outputs", false) ? {} : local.teams_outputs_tree
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Computations
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
-  teams_flat = merge(flatten(
+  teams_outputs_flat_prepare = merge(flatten(
     [for parent_id, parent in local.teams :
       concat(
         [
@@ -88,5 +58,34 @@ locals {
       )
     ]
   )...)
-}
 
+  teams_outputs_flat = { for provider in keys(local.vcs_teams) :
+    provider => { for team_id, team in local.teams_outputs_flat_prepare :
+      team_id => merge(
+        team,
+        local.vcs_teams[provider].teams[team_id]
+      )
+    }
+  }
+
+  teams_outputs_tree = { for provider in keys(local.vcs_teams) :
+    provider => { for parent_id, parent in local.teams :
+      parent_id => merge(
+        parent,
+        local.vcs_teams[provider].teams[parent_id],
+        { for child_id, child in lookup(parent, "teams", {}) :
+          child_id => merge(
+            child,
+            local.vcs_teams[provider].teams[child_id],
+            { for grand_child_id, grand_child in lookup(child, "teams", {}) :
+              grand_child_id => merge(
+                grand_child,
+                local.vcs_teams[provider].teams[grand_child_id]
+              )
+            }
+          )
+        }
+      )
+    }
+  }
+}
