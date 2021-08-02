@@ -2,35 +2,26 @@
 # Main variables
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
-  # Static
-  globalconfig_static = { for provider in local.global_config_providers :
+  globalconfig = { for provider in local.globalconfig_providers :
     provider => merge(
       local.globalconfig_defaults,
       {
-        vcs = local.globalconfig_defaults_vcs
+        vcs = merge(local.globalconfig_defaults_vcs, {
+          files_strict = local.globalconfig_files_strict[provider]
+          files        = local.globalconfig_files[provider]
+        })
       }
     )
-  }
-
-  # Dynamic
-  globalconfig_dynamic = { for provider in local.global_config_providers :
-    provider => {
-      vcs = {
-        files_strict = local.globalconfig_files_strict[provider]
-        files        = local.globalconfig_files[provider]
-      }
-    }
   }
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
-# Static defaults
-# These are computable statically (without any resource created or any external data fetched)
+# Defaults
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
   globalconfig_defaults = {
-    name        = "${var.prefix}${local.i18n.repo_global_config_name}"
-    description = local.i18n.repo_global_config_description
+    name        = "${var.prefix}${local.i18n.repo_globalconfig_name}"
+    description = local.i18n.repo_globalconfig_description
   }
 
   globalconfig_defaults_vcs = merge(local.vcs_configuration[var.vcs_default_provider], {
@@ -38,7 +29,7 @@ locals {
     branch_protection    = false
     branch_review_count  = 0
     branch_status_checks = []
-    repo_template        = local.vcs_provider_configuration[var.vcs_default_provider].repo_templates.global_config
+    repo_template        = local.vcs_provider_configuration[var.vcs_default_provider].repo_templates.globalconfig
     team_configuration = {
       admin    = local.globalconfig_teams_admins
       maintain = []
@@ -49,7 +40,7 @@ locals {
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
-# Static computations
+# Computations
 # These are computable statically (without any resource created or any external data fetched)
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
@@ -59,7 +50,7 @@ locals {
   globalconfig_teams_readers = ["global"]
 
   # Detect which VCS providers need a configuration repo
-  global_config_providers = distinct(compact(flatten([
+  globalconfig_providers = distinct(compact(flatten([
     local.globalops_static.vcs.branch_protection ? local.globalops_static.vcs.provider : null,
     [for repo in values(local.namespaces_repos_static) :
       repo.vcs.provider if repo.vcs.branch_protection
@@ -67,7 +58,7 @@ locals {
   ])))
 
   # Add sync workflow for each repo
-  globalconfig_files_strict_workflows = { for provider in local.global_config_providers :
+  globalconfig_files_strict_workflows = { for provider in local.globalconfig_providers :
     provider => { for k, v in merge({
       "${local.vcs_provider_configuration[provider].workflow_dir}/sync-${local.globalops_static.name}.yaml" = local.globalops_static.vcs.provider == provider && local.globalops_static.vcs.branch_protection ? templatefile("${path.module}/templates/${provider}/sync.yaml.tpl", {
         config_branch = local.globalconfig_defaults_vcs.branch_default_name
@@ -100,7 +91,7 @@ locals {
   }
 
   # Namespace repos files to add to the configuration repo
-  globalconfig_files_strict_namespaces = { for provider in local.global_config_providers :
+  globalconfig_files_strict_namespaces = { for provider in local.globalconfig_providers :
     provider => merge([for id, repo in local.namespaces_repos_static :
       { for file_path, content in lookup(local.namespaces_repos_files_strict, id, {}) :
         "${repo.name}/${file_path}" => content
@@ -119,7 +110,7 @@ locals {
   }
 
   # Namespace repos files to add to the configuration repo
-  globalconfig_files_namespaces = { for provider in local.global_config_providers :
+  globalconfig_files_namespaces = { for provider in local.globalconfig_providers :
     provider => merge([for id, repo in local.namespaces_repos_static :
       { for file_path, content in lookup(local.namespaces_repos_files, id, {}) :
         "${repo.name}/${file_path}" => content
@@ -128,9 +119,9 @@ locals {
   }
 
   # Strict files to add to the configuration repo per VCS provider
-  globalconfig_files_strict = { for provider in local.global_config_providers :
+  globalconfig_files_strict = { for provider in local.globalconfig_providers :
     provider => merge(
-      lookup(local.vcs_templates_files, "global_config", null), # Add template files if a local template was used
+      lookup(local.vcs_templates_files, "globalconfig", null), # Add template files if a local template was used
       lookup(local.globalconfig_files_strict_workflows, provider, null),
       lookup(local.globalconfig_files_strict_globalops, provider, null),
       lookup(local.globalconfig_files_strict_namespaces, provider, null),
@@ -139,7 +130,7 @@ locals {
     )
   }
   # Files to add to the configuration repo per VCS provider
-  globalconfig_files = { for provider in local.global_config_providers :
+  globalconfig_files = { for provider in local.globalconfig_providers :
     provider => merge(
       lookup(local.dev, "all_files_strict", false) ? null : lookup(local.globalconfig_files_globalops, provider, null),
       lookup(local.dev, "all_files_strict", false) ? null : lookup(local.globalconfig_files_namespaces, provider, null)

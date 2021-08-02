@@ -161,8 +161,8 @@ module "vcs_repo_globalconfig_github" {
   deploy_keys                      = each.value.vcs.deploy_keys
   description                      = each.value.description
   dotfiles_first                   = true
-  files                            = local.globalconfig_dynamic[each.key].vcs.files
-  files_strict                     = local.globalconfig_dynamic[each.key].vcs.files_strict
+  files                            = local.globalconfig[each.key].vcs.files
+  files_strict                     = local.globalconfig[each.key].vcs.files_strict
   has_issues                       = each.value.vcs.repo_enable_issues
   has_projects                     = each.value.vcs.repo_enable_projects
   has_wiki                         = each.value.vcs.repo_enable_wikis

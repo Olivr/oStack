@@ -24,11 +24,11 @@ locals {
     http_format  = "https://github.com/${local.vcs_organization_name}/%s"
     workflow_dir = ".github/workflows"
     repo_templates = {
-      global_config = null
-      global_ops    = "Olivr/ostack-global-ops"
-      apps          = "Olivr/ostack-ns-apps"
-      infra         = "Olivr/ostack-ns-infra"
-      ops           = "Olivr/ostack-ns-ops"
+      globalconfig = null
+      global_ops   = "Olivr/ostack-global-ops"
+      apps         = "Olivr/ostack-ns-apps"
+      infra        = "Olivr/ostack-ns-infra"
+      ops          = "Olivr/ostack-ns-ops"
     }
   }
 

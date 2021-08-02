@@ -33,7 +33,7 @@ locals {
   # Github
   vcs_repo_globalops_github    = var.vcs_default_provider == "github" ? toset(["globalops"]) : toset([])
   vcs_repo_globalinfra_github  = var.vcs_default_provider == "github" ? toset(compact([local.globalinfra_repo_name])) : toset([])
-  vcs_repo_globalconfig_github = contains(keys(local.globalconfig_static), "github") ? { github = local.globalconfig_static["github"] } : {}
+  vcs_repo_globalconfig_github = contains(keys(local.globalconfig), "github") ? { github = local.globalconfig["github"] } : {}
   vcs_teams_github             = contains(local.vcs_providers_in_use, "github") ? { github = local.teams_static } : {}
   vcs_repos_namespaces_github = { for id, repo in local.namespaces_repos_static :
     id => repo if repo.vcs.provider == "github"
@@ -47,7 +47,7 @@ locals {
 locals {
   vcs_providers_in_use = distinct(flatten([
     local.globalops_static.vcs.provider,
-    keys(local.globalconfig_static),
+    //keys(local.globalconfig),
     [for repo in values(local.namespaces_repos_static) : repo.vcs.provider]
   ]))
 }
