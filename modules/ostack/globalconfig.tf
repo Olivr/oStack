@@ -38,14 +38,12 @@ locals {
     branch_protection    = false
     branch_review_count  = 0
     branch_status_checks = []
-    repo_secrets         = local.vcs_configuration[var.vcs_default_provider].repo_secrets
-    sensitive_inputs     = local.vcs_configuration[var.vcs_default_provider].sensitive_inputs
     repo_template        = local.vcs_provider_configuration[var.vcs_default_provider].repo_templates.global_config
     team_configuration = {
-      admin    = ["global_admin"]
+      admin    = local.globalconfig_teams_admins
       maintain = []
-      read     = keys(merge(values(local.namespace_teams).*.teams...))
-      write    = setsubtract(keys(local.global_teams.global.teams), ["global_admin"])
+      read     = local.globalconfig_teams_readers
+      write    = local.globalconfig_teams_writers
     }
   })
 }
@@ -55,6 +53,11 @@ locals {
 # These are computable statically (without any resource created or any external data fetched)
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
+  # Set access controls
+  globalconfig_teams_admins  = ["global_admin"]
+  globalconfig_teams_writers = ["global_infra", "global_manager"] # Write access needed to trigger manual syncs
+  globalconfig_teams_readers = ["global"]
+
   # Detect which VCS providers need a configuration repo
   global_config_providers = distinct(compact(flatten([
     local.globalops_static.vcs.branch_protection ? local.globalops_static.vcs.provider : null,

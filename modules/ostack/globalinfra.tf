@@ -23,18 +23,9 @@ locals {
 # These are computable statically (without any resource created or any external data fetched)
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
+  # Set access controls
   globalinfra_teams_admins      = ["global_admin"]
   globalinfra_teams_maintainers = ["global_manager", "global_infra_lead"]
   globalinfra_teams_writers     = ["global_infra"]
-  globalinfra_teams_readers = setsubtract(
-    setunion(
-      keys(local.global_teams.global.teams),
-      keys(merge(values(local.namespace_teams).*.teams...))
-    ),
-    setunion(
-      local.globalinfra_teams_admins,
-      local.globalinfra_teams_maintainers,
-      local.globalinfra_teams_writers
-    )
-  )
+  globalinfra_teams_readers     = ["global"]
 }

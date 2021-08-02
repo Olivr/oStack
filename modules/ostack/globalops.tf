@@ -64,10 +64,10 @@ locals {
       ]
     )
     team_configuration = {
-      admin    = ["global_admin"]
-      maintain = ["global_manager", "global_infra_lead"]
-      read     = []
-      write    = ["global_ops", "global_infra"]
+      admin    = local.globalops_teams_admins
+      maintain = local.globalops_teams_maintainers
+      read     = local.globalops_teams_readers
+      write    = local.globalops_teams_writers
     }
   })
 
@@ -91,6 +91,12 @@ locals {
 # These are computable statically (without any resource created or any external data fetched)
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
+  # Set access controls
+  globalops_teams_admins      = ["global_admin"]
+  globalops_teams_maintainers = ["global_manager", "global_infra_lead"]
+  globalops_teams_writers     = ["global_ops", "global_infra"]
+  globalops_teams_readers     = keys(local.teams_static) # All teams can read
+
   globalops_backends = local.backend_configuration[var.backend_default_provider].separate_environments ? { for id, env in local.environments :
     id => merge(local.globalops_defaults_backend, {
       _env                  = { id = id }
@@ -267,38 +273,6 @@ locals {
             kube_host           = local.clusters_k8s[cluster_id].kube_host
             kube_token          = "sensitive::kube_token"
             kube_ca_certificate = base64encode(local.clusters_k8s[cluster_id].kube_ca_certificate)
-            # secrets = merge({
-            #   vcs_token_globalops = {
-            #     name      = "vcs-token"
-            #     namespace = "flux-system"
-            #     data      = { token = "sensitive::vcs_token_globalops" }
-            #   }
-            #   }, { for repo_id, repo in local.namespaces_repos_static :
-            #   "vcs_token_${repo_id}" => {
-            #     name      = "vcs-token-${replace(repo.name, "/[\\s_\\.]/", "-")}"
-            #     namespace = "flux-system"
-            #     data      = { token = "sensitive::vcs_token_${repo_id}" }
-            #   } if repo.type == "ops" && contains(repo._namespace.environments, cluster._env.id)
-            # })
-            # deploy_keys = merge(
-            #   {
-            #     "global_ops" = {
-            #       name        = "flux-system"
-            #       namespace   = "flux-system"
-            #       known_hosts = local.vcs_provider_configuration[var.vcs_default_provider].known_hosts
-            #       public_key  = base64encode(tls_private_key.cluster_keys[cluster_id].public_key_pem)
-            #       private_key = "sensitive::globalops_private_key"
-            #     }
-            #   },
-            #   { for repo_id, repo in local.namespaces_repos_static :
-            #     repo_id => {
-            #       name        = "flux-${repo.name}"
-            #       namespace   = repo._namespace.name
-            #       known_hosts = local.vcs_provider_configuration[repo.vcs.provider].known_hosts
-            #       public_key  = base64encode(tls_private_key.ns_keys["${repo_id}_${cluster_id}"].public_key_pem)
-            #       private_key = "sensitive::${repo_id}_private_key"
-            #     } if repo.type == "ops" && contains(repo._namespace.environments, cluster._env.id)
-            # })
           }
           } if !backend.separate_environments || cluster._env.id == backend._env.id
         ]...)), "/(\".*?\"):/", "$1 = ") # https://brendanthompson.com/til/2021/3/hcl-enabled-tfe-variables

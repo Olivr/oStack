@@ -204,7 +204,7 @@ locals {
       team_configuration = {
         admin    = ["global_admin"]
         maintain = ["global_manager", "${vcs._repo._namespace.id}_manager", "global_apps_lead", "${vcs._repo._namespace.id}_apps_lead"]
-        read     = ["global_infra", "global_ops", "${vcs._repo._namespace.id}_ops", "${vcs._repo._namespace.id}_infra"]
+        read     = ["global", vcs._repo._namespace.id]
         write    = ["global_apps", "${vcs._repo._namespace.id}_apps"]
       }
     } if vcs._repo.type == "apps"
@@ -219,7 +219,7 @@ locals {
       team_configuration = {
         admin    = ["global_admin"]
         maintain = ["global_manager", "${vcs._repo._namespace.id}_manager", "global_infra_lead", "${vcs._repo._namespace.id}_infra_lead"]
-        read     = ["global_ops", "global_apps", "${vcs._repo._namespace.id}_ops", "${vcs._repo._namespace.id}_apps"]
+        read     = ["global", vcs._repo._namespace.id]
         write    = ["global_infra", "${vcs._repo._namespace.id}_infra"]
       }
     } if vcs._repo.type == "infra"
@@ -231,7 +231,7 @@ locals {
       team_configuration = {
         admin    = ["global_admin"]
         maintain = ["global_manager", "${vcs._repo._namespace.id}_manager"]
-        read     = ["global_infra", "global_apps", "${vcs._repo._namespace.id}_apps", "${vcs._repo._namespace.id}_infra"]
+        read     = ["global", vcs._repo._namespace.id]
         write    = ["global_ops", "${vcs._repo._namespace.id}_ops"]
       }
       reviewers = { for env in vcs._repo._namespace.environments :
