@@ -133,6 +133,8 @@ jobs:
         env:
           TF_VAR_organization_title: Test
           TF_VAR_organization_name: olivr-test
+          TF_VAR_cloud_default_provider: linode
+          TF_VAR_globalinfra_repo_name: ""
           TF_VAR_backend_configuration_base: '{tfe={tfe_oauth_token_id="${{ secrets.TFE_OAUTH_TOKEN_ID }}"}}'
           TF_VAR_vcs_write_token: '{github="${{ secrets.COPYBARA_TOKEN }}"}'
           GITHUB_TOKEN: ${{ secrets.COPYBARA_TOKEN }}
