@@ -59,7 +59,7 @@ module "ostack_monorepo" {
   auto_init              = false
   branch_delete_on_merge = true
   branch_protection      = true
-  branch_status_checks   = ["Passed all CI tests"]
+  branch_status_checks   = ["Passed all CI tests", "Terraform Cloud/olivr/oStack"]
   has_projects           = false
   has_wiki               = false
   homepage_url           = "https://oStack.io"
