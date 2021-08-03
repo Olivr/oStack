@@ -1,4 +1,4 @@
-name: Run tests
+name: CI Tests
 on:
   push:
     branches: [main]
@@ -168,3 +168,17 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.COPYBARA_TOKEN }}
           LINODE_TOKEN: ${{ secrets.LINODE_TOKEN }}
           TFE_TOKEN: ${{ secrets.TFE_TOKEN }}
+
+  finalizer:
+    name: Passed all CI tests
+    if: always()
+    runs-on: ubuntu-latest
+    needs: [unit, e2e]
+    steps:
+      - name: All tests passed successfully ✅
+        if: needs.unit.result == 'success' && needs.e2e.result == 'success'
+        run: exit 0
+
+      - name: Some tests failed ❌
+        if: needs.unit.result != 'success' || needs.e2e.result != 'success'
+        run: exit 1
