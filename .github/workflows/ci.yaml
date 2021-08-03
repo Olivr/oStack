@@ -180,5 +180,5 @@ jobs:
         run: exit 0
 
       - name: Some tests failed ❌
-        if: needs.unit.result != 'success' || needs.e2e.result != 'success'
+        if: needs.unit.result != 'success' || (needs.e2e.result != 'success' && needs.e2e.result != 'skipped')
         run: exit 1
