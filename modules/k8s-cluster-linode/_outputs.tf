@@ -30,8 +30,8 @@ output "kube_host" {
 }
 
 output "kube_ca_certificate" {
-  description = "Kubernetes certificate authority certificate."
-  value       = base64decode(one(local.kube_config.clusters).cluster.certificate-authority-data)
+  description = "Kubernetes certificate authority certificate (base64 encoded)."
+  value       = one(local.kube_config.clusters).cluster.certificate-authority-data
   sensitive   = true
 }
 

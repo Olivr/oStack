@@ -39,7 +39,7 @@ No modules.
 
 | Name | Description |
 | --- | --- |
-| <a name="output_kube_ca_certificate"></a> [kube_ca_certificate](#output_kube_ca_certificate) | Kubernetes certificate authority certificate. |
+| <a name="output_kube_ca_certificate"></a> [kube_ca_certificate](#output_kube_ca_certificate) | Kubernetes certificate authority certificate (base64 encoded). |
 | <a name="output_kube_config"></a> [kube_config](#output_kube_config) | Kubernetes credentials file. |
 | <a name="output_kube_host"></a> [kube_host](#output_kube_host) | Kubernetes server. |
 | <a name="output_kube_token"></a> [kube_token](#output_kube_token) | Kubernetes authentication token. |

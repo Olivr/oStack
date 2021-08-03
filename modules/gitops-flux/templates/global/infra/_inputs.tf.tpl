@@ -2,7 +2,7 @@
 # REQUIRED PARAMETERS
 # ---------------------------------------------------------------------------------------------------------------------
 variable "clusters" {
-  description = "Clusters and their configuration."
+  description = "Clusters and their configuration. Certificate must be base64 encoded."
   type = map(object({
     kube_host           = string
     kube_token          = string

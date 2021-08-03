@@ -261,7 +261,7 @@ locals {
           (cluster.name) = {
             kube_host           = local.clusters_k8s[cluster_id].kube_host
             kube_token          = "sensitive::kube_token"
-            kube_ca_certificate = base64encode(local.clusters_k8s[cluster_id].kube_ca_certificate)
+            kube_ca_certificate = local.clusters_k8s[cluster_id].kube_ca_certificate
           }
           } if cluster.bootstrap && (!backend.separate_environments || cluster._env.id == backend._env.id)
         ]...)), "/(\".*?\"):/", "$1 = ") # https://brendanthompson.com/til/2021/3/hcl-enabled-tfe-variables
