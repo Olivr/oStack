@@ -61,21 +61,21 @@ locals {
       create    = false
       bootstrap = lookup(cluster, "kube_config", null) != null
       kube_ca_certificate = try(
-        can(regex("^sensitive::", cluster.kube_config.ca_certificate) ? (
+        can(regex("^sensitive::", cluster.kube_config.ca_certificate)) ? (
           sensitive(var.sensitive_inputs[trimprefix(cluster.kube_config.ca_certificate, "sensitive::")])
-        ) : cluster.kube_config.ca_certificate),
+        ) : cluster.kube_config.ca_certificate,
       "")
 
       kube_host = try(
-        can(regex("^sensitive::", cluster.kube_config.host) ? (
+        can(regex("^sensitive::", cluster.kube_config.host)) ? (
           sensitive(var.sensitive_inputs[trimprefix(cluster.kube_config.host, "sensitive::")])
-        ) : cluster.kube_config.host),
+        ) : cluster.kube_config.host,
       "")
 
       kube_token = try(
-        can(regex("^sensitive::", cluster.kube_config.token) ? (
+        can(regex("^sensitive::", cluster.kube_config.token)) ? (
           sensitive(var.sensitive_inputs[trimprefix(cluster.kube_config.token, "sensitive::")])
-        ) : cluster.kube_config.token),
+        ) : cluster.kube_config.token,
       "")
     }) if lookup(cluster, "create", true) == false || lookup(cluster, "kube_config", null) != null
   }
