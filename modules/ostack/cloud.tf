@@ -4,7 +4,10 @@
 locals {
   clusters_k8s = merge(
     module.clusters_k8s_linode,
-    module.clusters_k8s_digitalocean
+    module.clusters_k8s_digitalocean,
+    { for id, cluster in local.environments_clusters_existing :
+      id => cluster if cluster.bootstrap
+    }
   )
 }
 

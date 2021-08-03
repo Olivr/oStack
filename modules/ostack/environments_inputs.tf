@@ -16,7 +16,6 @@ variable "environments" {
     continuous_delivery = optional(bool)
     clusters = map(object({
       name         = optional(string)
-      kube_config  = optional(string)
       create       = optional(bool)
       provider     = optional(string)
       autoscale    = optional(bool)
@@ -24,6 +23,11 @@ variable "environments" {
       nodes        = optional(map(number))
       kube_version = optional(string)
       tags         = optional(set(string))
+      kube_config = optional(object({
+        ca_certificate = string
+        host           = string
+        token          = string
+      }))
     }))
   }))
 

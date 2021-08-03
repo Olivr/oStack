@@ -36,7 +36,7 @@ data "flux_sync" "main" {
 # Computations
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
-  combined_infra = !var.global.backends[keys(var.global.backends)[0]].separate_environments
+  combined_infra = !try(var.global.backends[keys(var.global.backends)[0]].separate_environments, false)
 
   global_infra = merge([for backend in values(var.global.backends) :
     {
@@ -50,7 +50,7 @@ locals {
   global_infra_clusters = merge(distinct(flatten([for backend_id, backend in var.global.backends :
     [for env_id, env in var.environments :
       [for cluster in values(env.clusters) :
-        { "${trim(backend.vcs_working_directory, "/")}/${cluster.name}.tf" = "" }
+        { "${trim(backend.vcs_working_directory, "/")}/${cluster.name}.tf" = "" } if cluster.bootstrap
       ] if backend_id == env_id || !backend.separate_environments
     ]
   ]))...)
@@ -69,7 +69,7 @@ locals {
             namespaces    = join("\",\"", local.environment_tenants[env.name])
             secrets       = replace(jsonencode(var.secrets[cluster.name]), "/(\".*?\"):/", "$1 = ") # https://brendanthompson.com/til/2021/3/hcl-enabled-tfe-variables
           })
-        }
+        } if cluster.bootstrap
       ] if backend_id == env_id || !backend.separate_environments
     ]
   ]))...)

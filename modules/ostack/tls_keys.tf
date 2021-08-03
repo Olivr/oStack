@@ -20,7 +20,7 @@ resource "tls_private_key" "ns_keys" {
 # Computations
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
-  environments_keys_create = setunion(keys(local.environments_clusters_create), ["_ci"])
+  environments_keys_create = setunion(keys(local.environments_clusters), ["_ci"])
 
   ns_keys_create = toset(
     [

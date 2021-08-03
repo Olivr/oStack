@@ -17,6 +17,7 @@ locals {
   cluster_configuration_defaults_base = {
     autoscale    = false
     create       = true
+    bootstrap    = true
     kube_version = "1.21"
     kube_config  = null
     nodes        = { "g6-standard-1" = 2 }

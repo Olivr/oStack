@@ -26,7 +26,8 @@ variable "environments" {
   type = map(object({
     name = string
     clusters = map(object({
-      name = string
+      name      = string
+      bootstrap = bool
     }))
   }))
 }

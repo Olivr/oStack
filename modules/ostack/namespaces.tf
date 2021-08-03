@@ -344,7 +344,7 @@ locals {
           readonly = true
         }
       },
-      { for cluster_id, cluster in local.environments_clusters_create :
+      { for cluster_id, cluster in local.environments_clusters :
         (cluster_id) => {
           title    = cluster.name
           ssh_key  = tls_private_key.ns_keys["${id}_${cluster_id}"].public_key_openssh
