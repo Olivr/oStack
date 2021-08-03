@@ -15,7 +15,7 @@ resource "kubectl_manifest" "flux_system" {
 }
 
 resource "kubectl_manifest" "namespaces" {
-  for_each  = var.namespaces
+  for_each  = toset(compact(var.namespaces))
   yaml_body = <<-YAML
     apiVersion: v1
     kind: Namespace

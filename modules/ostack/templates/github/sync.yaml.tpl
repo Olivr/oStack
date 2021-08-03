@@ -55,6 +55,6 @@ jobs:
           token: $${{ secrets.VCS_WRITE_TOKEN }}
           title: "Update oStack configuration"
           commit-message: $${{ steps.commit.outputs.message }}
-          body: Coming from https://github.com/$${{ github.repository }}/${repo_name}
+          body: Coming from https://github.com/$${{ github.repository }} (${repo_name} directory)
           branch: $${{ github.repository }}
           labels: ostack,automated,config%{ if automerge == true~},automerge%{ endif~}

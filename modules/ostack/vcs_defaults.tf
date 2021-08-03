@@ -59,6 +59,12 @@ locals {
     repo_vulnerability_alerts        = true
     sensitive_inputs                 = {}
     tags                             = setunion(var.tags, [local.organization_name])
+    team_configuration = {
+      admin    = []
+      maintain = []
+      read     = []
+      write    = []
+    }
     repo_secrets = {
       vcs_write_token = "sensitive::vcs_write_token"
     }

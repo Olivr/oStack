@@ -187,7 +187,7 @@ locals {
   )
 
   globalops_gitops_local_vars_template = jsonencode({
-    cluster_path = "./${values(local.environments)[0].name}/${values(values(local.environments)[0].clusters)[0].name}/${local.globalops_defaults_gitops.base_dir}"
+    cluster_path = try("./${values(local.environments)[0].name}/${values(values(local.environments)[0].clusters)[0].name}/${local.globalops_defaults_gitops.base_dir}", "./${local.globalops_defaults_gitops.base_dir}")
     sensitive_inputs = merge({ for k in keys(local.globalops_gitops_local_sensitive_inputs) :
       k => ""
     })

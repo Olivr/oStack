@@ -63,7 +63,7 @@ locals {
     id => merge(repo,
       {
         name                = lookup(repo, "name", null) != null && lookup(repo, "name", "") != "" ? repo.name : lower(trim("${repo._namespace.name}-${replace(replace(repo.id, "/[\\s_\\.]/", "-"), "/[^a-zA-Z0-9-]/", "")}", "-"))
-        description         = lookup(repo, "description", null) != null && lookup(repo, "description", "") != "" ? repo.description : format(local.i18n["repo_${repo.type}_description"], repo._namespace.title)
+        description         = lookup(repo, "description", null) != null && lookup(repo, "description", "") != "" ? repo.description : try(format(local.i18n["repo_${repo.type}_description"], repo._namespace.title), "")
         backend             = try(length(repo.backend) > 0 ? repo.backend : tomap(false), {})
         vcs                 = try(length(repo.vcs) > 0 ? repo.vcs : tomap(false), {})
         continuous_delivery = lookup(repo, "continuous_delivery", null) != null ? repo.continuous_delivery : var.continuous_delivery
@@ -159,10 +159,7 @@ locals {
       full_name     = "${local.vcs_organization_name}/${vcs._repo.name}"
       http_url      = format(local.vcs_provider_configuration[vcs.provider].http_format, vcs._repo.name)
       ssh_url       = format(local.vcs_provider_configuration[vcs.provider].ssh_format, vcs._repo.name)
-      repo_template = lookup(vcs, "repo_template", null) != null ? vcs.repo_template : local.vcs_provider_configuration[vcs.provider].repo_templates[vcs._repo.type]
-      reviewers = {
-        "*" = ["global_${vcs._repo.type}_lead", "${vcs._repo._namespace.id}_${vcs._repo.type}_lead"]
-      }
+      repo_template = lookup(vcs, "repo_template", null) != null ? vcs.repo_template : try(local.vcs_provider_configuration[vcs.provider].repo_templates[vcs._repo.type], null)
 
       file_templates = { for name, default_content in local.vcs_configuration[vcs.provider].file_templates :
         name => lookup(vcs.file_templates, name, null) != null ? vcs.file_templates[name] : default_content
@@ -177,8 +174,8 @@ locals {
         [for env in vcs._repo._namespace.environments : local.environments[env].name],
         [
           vcs._repo._namespace.title,
-          local.i18n["tag_${vcs._repo.type}_proper"],
-          local.i18n["tag_${vcs._repo.type}_buzz"]
+          try(local.i18n["tag_${vcs._repo.type}_proper"], null),
+          try(local.i18n["tag_${vcs._repo.type}_buzz"], null)
         ]
       )
     })
@@ -192,6 +189,9 @@ locals {
         maintain = ["global_manager", "${vcs._repo._namespace.id}_manager", "global_apps_lead", "${vcs._repo._namespace.id}_apps_lead"]
         read     = ["global", vcs._repo._namespace.id]
         write    = ["global_apps", "${vcs._repo._namespace.id}_apps"]
+      }
+      reviewers = {
+        "*" = ["global_${vcs._repo.type}_lead", "${vcs._repo._namespace.id}_${vcs._repo.type}_lead"]
       }
     } if vcs._repo.type == "apps"
   }
@@ -207,6 +207,9 @@ locals {
         maintain = ["global_manager", "${vcs._repo._namespace.id}_manager", "global_infra_lead", "${vcs._repo._namespace.id}_infra_lead"]
         read     = ["global", vcs._repo._namespace.id]
         write    = ["global_infra", "${vcs._repo._namespace.id}_infra"]
+      }
+      reviewers = {
+        "*" = ["global_${vcs._repo.type}_lead", "${vcs._repo._namespace.id}_${vcs._repo.type}_lead"]
       }
     } if vcs._repo.type == "infra"
   }
@@ -263,7 +266,7 @@ locals {
 
   # Prepare CODEONWERS files for managing code reviews
   namespaces_repos_files_codeowners_prepare = { for id, repo in local.namespaces_repos :
-    id => { for path, owners in repo.vcs.reviewers :
+    id => { for path, owners in try(repo.vcs.reviewers, {}) :
       "CODEOWNERS" => join(" @${local.vcs_organization_name}/", concat([path], [for owner in owners : local.vcs_teams[repo.vcs.provider].teams[owner].slug]))...
     }
   }

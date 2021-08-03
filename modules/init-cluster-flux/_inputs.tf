@@ -13,7 +13,7 @@ variable "cluster_path" {
 # ---------------------------------------------------------------------------------------------------------------------
 variable "namespaces" {
   description = "Namespaces to create"
-  type        = set(string)
+  type        = list(string)
   default     = []
 }
 
