@@ -84,7 +84,7 @@ variable "namespaces" {
     error_message = "Null values are not accepted for env_vars, tfvars, tf_vars_hcl. Use empty values instead."
     condition = alltrue(flatten(
       [for namespace in values(var.namespaces) :
-        [for repo in try(values(namespace.repos), {}) :
+        [for repo in try(values(namespace.repos), []) :
           concat(
             [for v in try(values(repo.backend.env_vars), {}) : v != null],
             [for v in try(values(repo.backend.tf_vars), {}) : v != null],
@@ -99,7 +99,7 @@ variable "namespaces" {
     error_message = "Null values are not accepted for repo_secrets. Use empty values instead."
     condition = alltrue(flatten(
       [for namespace in values(var.namespaces) :
-        [for repo in try(values(namespace.repos), {}) :
+        [for repo in try(values(namespace.repos), []) :
           [for v in try(values(repo.vcs.repo_secrets), {}) : v != null]
         ]
       ]
@@ -107,11 +107,22 @@ variable "namespaces" {
   }
 
   validation {
-    error_message = "Supported repo types are apps, infra, ops."
+    error_message = "Supported repo types are apps, infra, ops, other."
     condition = alltrue(flatten(
       [for namespace in values(var.namespaces) :
-        [for repo in try(values(namespace.repos), {}) :
-          repo.type != null && contains(["apps", "infra", "ops"], repo.type)
+        [for repo in try(values(namespace.repos), []) :
+          repo.type != null && contains(["apps", "infra", "ops", "other"], repo.type)
+        ]
+      ]
+    ))
+  }
+
+  validation {
+    error_message = "At least one namespace must contain a repo of type ops for GitOps to work."
+    condition = anytrue(flatten(
+      [for namespace in values(var.namespaces) :
+        [for repo in try(values(namespace.repos), []) :
+          repo.type == "ops"
         ]
       ]
     ))
@@ -121,7 +132,7 @@ variable "namespaces" {
     error_message = "Repo names must only contain alphanumeric characters. It may contain '-' but cannot start or finish with it."
     condition = alltrue(flatten(
       [for namespace in values(var.namespaces) :
-        [for repo in try(values(namespace.repos), {}) :
+        [for repo in try(values(namespace.repos), []) :
           lookup(repo, "name", null) != null ? can(regex("^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?([a-zA-Z0-9]([-a-zA-Z0-9]*[a-zA-Z0-9])?)*$", repo.name)) : true
         ]
       ]
@@ -133,6 +144,34 @@ variable "namespaces" {
     condition = alltrue(flatten(
       [for namespace in values(var.namespaces) :
         lookup(namespace, "name", null) != null ? can(regex("^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?([a-zA-Z0-9]([-a-zA-Z0-9]*[a-zA-Z0-9])?)*$", namespace.name)) : true
+      ]
+    ))
+  }
+
+  validation {
+    error_message = "Namespace names must be unique."
+    condition = length(distinct([for namespace in values(var.namespaces) :
+      lookup(namespace, "name", null) != null && lookup(namespace, "name", "") != "" ? namespace.name : lower(trim(replace(replace(namespace.title, "/[\\s_\\.]/", "-"), "/[^a-zA-Z0-9-]/", ""), "-"))
+    ])) == length(keys(var.namespaces))
+  }
+
+  validation {
+    error_message = "Repo names must be unique."
+    condition = length(distinct(flatten([for namespace in values(var.namespaces) :
+      [for id, repo in try(namespace.repos, {}) :
+        lookup(repo, "name", null) != null && lookup(repo, "name", "") != "" ? (
+          repo.name
+          ) : (
+          lower(trim("${(
+            lookup(namespace, "name", null) != null && lookup(namespace, "name", "") != "" ? namespace.name : lower(trim(replace(replace(namespace.title, "/[\\s_\\.]/", "-"), "/[^a-zA-Z0-9-]/", ""), "-"))
+            )}-${(
+            replace(replace(id, "/[\\s_\\.]/", "-"), "/[^a-zA-Z0-9-]/", "")
+          )}", "-"))
+        )
+      ]
+      ]))) == length(flatten(
+      [for namespace in values(var.namespaces) :
+        try(keys(namespace.repos), [])
       ]
     ))
   }
