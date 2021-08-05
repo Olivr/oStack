@@ -28,7 +28,7 @@ No modules.
 
 | Name | Description | Type | Default | Required |
 | --- | --- | --- | --- | :-: |
-| <a name="input_environments"></a> [environments](#input_environments) | Clusters per environments. | <pre>map(object({<br> name = string<br> clusters = map(object({<br> name = string<br> bootstrap = bool<br> }))<br> }))</pre> | n/a | yes |
+| <a name="input_environments"></a> [environments](#input_environments) | Clusters per environments. | <pre>map(object({<br> name = string<br> clusters = map(object({<br> name = string<br> bootstrap = bool<br> gpg_fingerprint = string<br> gpg_public_key = string<br> }))<br> }))</pre> | n/a | yes |
 | <a name="input_global"></a> [global](#input_global) | Global ops repo configuration. | <pre>object({<br> vcs = object({<br> provider = string<br> http_url = string<br> ssh_url = string<br> branch_default_name = string<br> })<br> backends = map(object({<br> vcs_working_directory = string<br> \_env_name = string<br> \_cluster_name = string<br> }))<br> })</pre> | n/a | yes |
 | <a name="input_namespaces"></a> [namespaces](#input_namespaces) | Namespaces to be used as isolated tenants. | <pre>map(object({<br> name = string<br> environments = set(string)<br> tenant_isolation = bool<br> repos = map(object({<br> name = string<br> type = string<br> vcs = object({<br> provider = string<br> http_url = string<br> ssh_url = string<br> branch_default_name = string<br> })<br> }))<br> }))</pre> | n/a | yes |
 | <a name="input_base_dir"></a> [base_dir](#input_base_dir) | Name of the base directory. | `string` | `"_base"` | no |

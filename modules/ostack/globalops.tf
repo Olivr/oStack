@@ -107,6 +107,7 @@ locals {
       sensitive_inputs = merge(local.globalops_defaults_backend.sensitive_inputs, {
         kube_token = sensitive(local.clusters_k8s[cluster_id].kube_token)
         sensitive_inputs = replace(jsonencode(merge({
+          "sops-gpg"                                          = try(module.gpg_keys[cluster_id].private_key, "")
           "${local.globalops_defaults_base.name}_private_key" = sensitive(tls_private_key.cluster_keys[cluster_id].private_key_pem)
           "${local.globalops_defaults_base.name}_vcs_token"   = sensitive(var.vcs_write_token[var.vcs_default_provider])
           }, merge([for id, repo in local.namespaces_repos_ops :
@@ -234,6 +235,11 @@ locals {
 
   globalops_gitops_secrets = { for cluster_id, cluster in local.environments_clusters :
     (cluster.name) => merge({
+      sops = {
+        name      = "sops-gpg"
+        namespace = "flux-system"
+        data      = { "sops.asc" = "sensitive::sops-gpg" }
+      }
       globalops_vcs_token = {
         name      = "vcs-token"
         namespace = "flux-system"
@@ -247,43 +253,4 @@ locals {
       } if contains(repo._namespace.environments, cluster._env.id)
     })
   }
-
-
-  # globalops_backend_sensitive_inputs = { for id, backend in local.globalops_backends :
-  #   id => merge(
-  #     backend.sensitive_inputs,
-  #     {
-  #       sensitive_inputs_per_cluster = replace(jsonencode(merge([for cluster_id, cluster in local.environments_clusters : {
-  #         (cluster.name) = merge({
-  #           kube_token                                          = sensitive(local.clusters_k8s[cluster_id].kube_token)
-  #           "${local.globalops_defaults_base.name}_private_key" = sensitive(tls_private_key.cluster_keys[cluster_id].private_key_pem)
-  #           "${local.globalops_defaults_base.name}_vcs_token"   = sensitive(var.vcs_write_token[var.vcs_default_provider])
-  #           }, merge([for id, repo in local.namespaces_repos :
-  #             {
-  #               "${repo.name}_private_key" = sensitive(tls_private_key.ns_keys["${id}_${cluster_id}"].private_key_pem)
-  #               "${repo.name}_vcs_token"   = sensitive(var.vcs_write_token[repo.vcs.provider])
-  #             } if repo.type == "ops" && contains(repo._namespace.environments, cluster._env.id)
-  #           ]...)
-  #         )
-  #         } if cluster.bootstrap && (!backend.separate_environments || cluster._env.id == backend._env.id)
-  #       ]...)), "/(\".*?\"):/", "$1 = ") # https://brendanthompson.com/til/2021/3/hcl-enabled-tfe-variables
-  #     }
-  #   )
-  # }
-
-  # globalops_backends_tf_vars_hcl = { for id, backend in local.globalops_backends :
-  #   id => merge(backend.tf_vars_hcl,
-  #     {
-  #       sensitive_inputs_per_cluster = "sensitive::sensitive_inputs_per_cluster"
-  #       clusters = replace(jsonencode(merge([for cluster_id, cluster in local.environments_clusters : {
-  #         (cluster.name) = {
-  #           kube_host           = local.clusters_k8s[cluster_id].kube_host
-  #           kube_token          = "sensitive::kube_token"
-  #           kube_ca_certificate = local.clusters_k8s[cluster_id].kube_ca_certificate
-  #         }
-  #         } if cluster.bootstrap && (!backend.separate_environments || cluster._env.id == backend._env.id)
-  #       ]...)), "/(\".*?\"):/", "$1 = ") # https://brendanthompson.com/til/2021/3/hcl-enabled-tfe-variables
-  #     }
-  #   )
-  # }
 }

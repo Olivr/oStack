@@ -35,3 +35,7 @@ spec:
     name: "${name}"
   prune: true
   validation: client
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-gpg

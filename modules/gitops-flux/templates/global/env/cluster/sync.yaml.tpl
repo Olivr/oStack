@@ -12,3 +12,7 @@ spec:
   path: ./${env}/${name}/_overlays
   prune: true
   validation: client
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-gpg

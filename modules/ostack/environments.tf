@@ -22,6 +22,10 @@ locals {
     local.environments_clusters_create,
     local.environments_clusters_existing
   )
+
+  # environments_clusters_configure = { for id, cluster in local.environments_clusters :
+  #   id => cluster if cluster.bootstrap
+  # }
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -102,14 +106,33 @@ locals {
     }
   }
 
+  environments_clusters_combined = { for id, cluster in merge(local.environments_clusters_existing, local.environments_clusters_create) :
+    id => merge(cluster, {
+      gpg_fingerprint = try(try(module.gpg_keys[id].fingerprint, cluster.gpg_fingerprint), null)
+      gpg_public_key  = try(try(module.gpg_keys[id].public_key, cluster.gpg_public_key), null)
+    })
+  }
+
   # All clusters per environment
   environments_complex = { for env_id, env in local.environments_simple :
     env_id => {
       clusters = { for cluster_id, settings in env.clusters :
-        cluster_id => merge(local.environments_clusters_existing, local.environments_clusters_create)["${env_id}_${cluster_id}"]
+        cluster_id => local.environments_clusters_combined["${env_id}_${cluster_id}"]
       }
     }
   }
 }
 
+# ---------------------------------------------------------------------------------------------------------------------
+# Resources
+# ---------------------------------------------------------------------------------------------------------------------
+module "gpg_keys" {
+  source = "../gpg-key"
 
+  for_each = { for id, cluster in merge(local.environments_clusters_existing, local.environments_clusters_create) :
+    id => cluster if cluster.bootstrap && lookup(cluster, "gpg_fingerprint", null) == null
+  }
+
+  name    = each.value.name
+  comment = local.organization_title
+}

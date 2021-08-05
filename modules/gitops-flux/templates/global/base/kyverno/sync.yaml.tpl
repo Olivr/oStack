@@ -17,6 +17,10 @@ spec:
       kind: Deployment
       name: kyverno
       namespace: kyverno
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-gpg
 
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1beta1
@@ -34,3 +38,7 @@ spec:
   path: ./${base_dir}/kyverno/policies
   prune: true
   validation: client
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-gpg

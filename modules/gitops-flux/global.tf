@@ -3,6 +3,7 @@
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
   global_files_strict = merge(
+    local.global_gpg,
     local.global_infra,
     local.global_infra_local,
     local.global_infra_cluster_init,
@@ -35,6 +36,33 @@ data "flux_sync" "main" {
 # Computations
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
+  # Setup SOPS
+  global_fingerprints_clusters = { for env_id, env in var.environments :
+    env_id => { for cluster_id, cluster in env.clusters :
+      cluster_id => cluster.gpg_fingerprint if cluster.gpg_fingerprint != null
+    }
+  }
+
+  global_fingerprints_env = { for env_id, cluster_fingerprints in local.global_fingerprints_clusters :
+    env_id => flatten(values(cluster_fingerprints))
+  }
+
+  global_gpg = merge(
+    {
+      ".sops.yaml" = templatefile("${local.partial}/global_sops.yaml.tpl", {
+        environments     = var.environments
+        fingerprints_env = local.global_fingerprints_env
+        fingerprints_all = flatten(values(local.global_fingerprints_env))
+      })
+    },
+    merge([for env in var.environments :
+      { for cluster in env.clusters :
+        ".gpg_keys/${env.name}-${cluster.name}.sops.pub.asc" => cluster.gpg_public_key
+      }
+    ]...)
+  )
+
+  # Init cluster file for remote clusters
   global_infra = { for backend in values(var.global.backends) :
     "${trim(backend.vcs_working_directory, "/")}/main.tf" => templatefile("${path.module}/templates/global/infra/remote.tf.tpl", {
       base_dir      = local.base_dir
@@ -46,29 +74,6 @@ locals {
       secrets       = replace(jsonencode(var.secrets[backend._cluster_name]), "/(\".*?\"):/", "$1 = ") # https://brendanthompson.com/til/2021/3/hcl-enabled-tfe-variables
     })
   }
-
-  # global_infra_clusters = merge(distinct(flatten([for backend_id, backend in var.global.backends :
-  #   [for env_id, env in var.environments :
-  #     [for cluster in values(env.clusters) :
-  #       {
-  #         "${trim(backend.vcs_working_directory, "/")}/${cluster.name}.tf" = templatefile("${path.module}/templates/global/infra/cluster.tf.tpl", {
-  #           base_dir      = local.base_dir
-  #           base_path     = !backend.separate_environments ? "../.." : "../../.."
-  #           cluster       = cluster.name
-  #           cluster_path  = "./${env.name}/${cluster.name}/${local.base_dir}"
-  #           deploy_keys   = replace(jsonencode(var.deploy_keys[cluster.name]), "/(\".*?\"):/", "$1 = ") # https://brendanthompson.com/til/2021/3/hcl-enabled-tfe-variables
-  #           module_source = local.cluster_init_path != null ? (!backend.separate_environments ? "./modules/init-cluster" : "../shared-modules/init-cluster") : var.init_cluster.module_source
-  #           namespaces    = join("\",\"", local.environment_tenants[env.name])
-  #           secrets       = replace(jsonencode(var.secrets[cluster.name]), "/(\".*?\"):/", "$1 = ") # https://brendanthompson.com/til/2021/3/hcl-enabled-tfe-variables
-  #         })
-  #       } if cluster.bootstrap
-  #     ] if backend_id == env_id || !backend.separate_environments
-  #   ]
-  # ]))...)
-
-  # global_infra_clusters_merged = { for file_path, file_content in local.global_infra_clusters :
-  #   file_path => local.global_infra_clusters_values[file_path]
-  # }
 
   # Init cluster file for local clusters (CI and dev)
   global_infra_local = {

@@ -14,3 +14,7 @@ spec:
   path: ./${env_name}/${base_dir}/${tenants_dir}
   prune: true
   validation: client
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-gpg

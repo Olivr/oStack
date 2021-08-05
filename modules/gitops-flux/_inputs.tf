@@ -26,8 +26,10 @@ variable "environments" {
   type = map(object({
     name = string
     clusters = map(object({
-      name      = string
-      bootstrap = bool
+      name            = string
+      bootstrap       = bool
+      gpg_fingerprint = string
+      gpg_public_key  = string
     }))
   }))
 }

@@ -16,6 +16,21 @@ variable "organization_name" {
   }
 }
 
+# variable "certificate_email" {
+#   description = "Email address used for generating certificates."
+#   type        = string
+
+#   validation {
+#     error_message = "Variable lang cannot be null."
+#     condition     = var.certificate_email != null
+#   }
+
+#   validation {
+#     error_message = "You must enter a real email address."
+#     condition     = can(regex("^\\S+@\\S+\\.\\S+$", var.certificate_email))
+#   }
+# }
+
 # ---------------------------------------------------------------------------------------------------------------------
 # OPTIONAL INPUTS
 # These parameters have reasonable defaults.

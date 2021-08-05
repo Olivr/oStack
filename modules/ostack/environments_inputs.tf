@@ -15,14 +15,16 @@ variable "environments" {
     promotion_order     = optional(number)
     continuous_delivery = optional(bool)
     clusters = map(object({
-      name         = optional(string)
-      create       = optional(bool)
-      provider     = optional(string)
-      autoscale    = optional(bool)
-      region       = optional(string)
-      nodes        = optional(map(number))
-      kube_version = optional(string)
-      tags         = optional(set(string))
+      name            = optional(string)
+      autoscale       = optional(bool)
+      create          = optional(bool)
+      gpg_fingerprint = optional(string)
+      gpg_public_key  = optional(string)
+      kube_version    = optional(string)
+      nodes           = optional(map(number))
+      provider        = optional(string)
+      region          = optional(string)
+      tags            = optional(set(string))
       kube_config = optional(object({
         ca_certificate = string
         host           = string
@@ -51,10 +53,21 @@ variable "environments" {
   }
 
   validation {
+    error_message = "If providing a custom GPG key for a cluster, you must specify both gpg_public_key and gpg_fingerprint."
+    condition = alltrue(flatten(
+      [for env in values(var.environments) :
+        [for cluster in values(env.clusters) :
+          (lookup(cluster, "gpg_fingerprint", null) == null && lookup(cluster, "gpg_public_key", null) == null) || (lookup(cluster, "gpg_fingerprint", null) != null && lookup(cluster, "gpg_public_key", null) != null)
+        ]
+      ]
+    ))
+  }
+
+  validation {
     error_message = "Cluster names must match the regex /^[a-z0-9-]+$/."
     condition = alltrue(flatten(
       [for env in values(var.environments) :
-        [for id, cluster in values(env.clusters) :
+        [for id, cluster in env.clusters :
           can(regex("^[a-z0-9-]+$", lookup(cluster, "name", null) != null ? cluster.name : id))
         ]
       ]
