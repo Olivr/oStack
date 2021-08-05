@@ -7,6 +7,10 @@ locals {
 
   namespaces_repos = local.namespaces_repos_complex
 
+  namespaces_repos_ops = { for id, repo in local.namespaces_repos :
+    id => repo if repo.type == "ops"
+  }
+
   namespaces_backends_create = merge([for repo_id, repo in local.namespaces_repos :
     { for id, backend in repo.backends :
       "${repo_id}_${id}" => merge(backend, { repo_id = repo_id }) if backend.create == true
@@ -343,7 +347,7 @@ locals {
       {
         _ci = {
           title    = "CI / GitHub Actions (${local.globalops.name}, ${repo.name})"
-          ssh_key  = tls_private_key.ns_keys["${id}__ci"].public_key_openssh
+          ssh_key  = tls_private_key.ci_keys[id].public_key_openssh
           readonly = true
         }
       },

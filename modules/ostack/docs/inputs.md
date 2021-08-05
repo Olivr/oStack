@@ -32,6 +32,7 @@
 
 | Name | Type |
 | --- | --- |
+| [tls_private_key.ci_keys](https://registry.terraform.io/providers/hashicorp/tls/3.1.0/docs/resources/private_key) | resource |
 | [tls_private_key.cluster_keys](https://registry.terraform.io/providers/hashicorp/tls/3.1.0/docs/resources/private_key) | resource |
 | [tls_private_key.ns_keys](https://registry.terraform.io/providers/hashicorp/tls/3.1.0/docs/resources/private_key) | resource |
 

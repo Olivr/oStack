@@ -109,11 +109,11 @@ locals {
         sensitive_inputs = replace(jsonencode(merge({
           "${local.globalops_defaults_base.name}_private_key" = sensitive(tls_private_key.cluster_keys[cluster_id].private_key_pem)
           "${local.globalops_defaults_base.name}_vcs_token"   = sensitive(var.vcs_write_token[var.vcs_default_provider])
-          }, merge([for id, repo in local.namespaces_repos :
+          }, merge([for id, repo in local.namespaces_repos_ops :
             {
               "${repo.name}_private_key" = sensitive(tls_private_key.ns_keys["${id}_${cluster_id}"].private_key_pem)
               "${repo.name}_vcs_token"   = sensitive(var.vcs_write_token[repo.vcs.provider])
-            } if repo.type == "ops" && contains(repo._namespace.environments, cluster._env.id)
+            } if contains(repo._namespace.environments, cluster._env.id)
           ]...)
         )), "/(\".*?\"):/", "$1 = ") # https://brendanthompson.com/til/2021/3/hcl-enabled-tfe-variables
       })
@@ -168,7 +168,7 @@ locals {
     {
       _ci = {
         title    = "CI / GitHub Actions (${local.globalops_defaults_base.name})"
-        ssh_key  = tls_private_key.cluster_keys["_ci"].public_key_openssh
+        ssh_key  = tls_private_key.ci_keys["_globalops"].public_key_openssh
         readonly = true
       }
     },
@@ -197,9 +197,9 @@ locals {
   })
 
   globalops_gitops_local_sensitive_inputs = merge(
-    { "${local.globalops_defaults_base.name}_private_key" = sensitive(tls_private_key.cluster_keys["_ci"].private_key_pem) },
-    { for id, repo in local.namespaces_repos :
-      "${repo.name}_private_key" => sensitive(tls_private_key.ns_keys["${id}__ci"].private_key_pem) if repo.type == "ops"
+    { "${local.globalops_defaults_base.name}_private_key" = sensitive(tls_private_key.ci_keys["_globalops"].private_key_pem) },
+    { for id, repo in local.namespaces_repos_ops :
+      "${repo.name}_private_key" => sensitive(tls_private_key.ci_keys[id].private_key_pem)
     }
   )
 
@@ -217,18 +217,18 @@ locals {
           name        = "flux-system"
           namespace   = "flux-system"
           known_hosts = local.vcs_provider_configuration[var.vcs_default_provider].known_hosts
-          public_key  = base64encode(tls_private_key.cluster_keys[cluster_id].public_key_pem)
+          public_key  = base64encode(cluster.name == "_ci" ? tls_private_key.ci_keys["_globalops"].public_key_pem : tls_private_key.cluster_keys[cluster_id].public_key_pem)
           private_key = "sensitive::${local.globalops_defaults_base.name}_private_key"
         }
       },
-      { for repo_id, repo in local.namespaces_repos :
+      { for repo_id, repo in local.namespaces_repos_ops :
         repo_id => {
           name        = "flux-${repo.name}"
           namespace   = repo._namespace.name
           known_hosts = local.vcs_provider_configuration[repo.vcs.provider].known_hosts
-          public_key  = base64encode(tls_private_key.ns_keys["${repo_id}_${cluster_id}"].public_key_pem)
+          public_key  = base64encode(cluster.name == "_ci" ? tls_private_key.ci_keys[repo_id].public_key_pem : tls_private_key.ns_keys["${repo_id}_${cluster_id}"].public_key_pem)
           private_key = "sensitive::${repo.name}_private_key"
-        } if repo.type == "ops" && (cluster.name == "_ci" || try(contains(repo._namespace.environments, cluster._env.id), false))
+        } if cluster.name == "_ci" || try(contains(repo._namespace.environments, cluster._env.id), false)
     })
   }
 
@@ -239,12 +239,12 @@ locals {
         namespace = "flux-system"
         data      = { token = "sensitive::${local.globalops_defaults_base.name}_vcs_token" }
       }
-      }, { for repo_id, repo in local.namespaces_repos :
+      }, { for repo_id, repo in local.namespaces_repos_ops :
       "${repo_id}_vcs_token" => {
         name      = "vcs-token-${replace(repo.name, "/[\\s_\\.]/", "-")}"
         namespace = "flux-system"
         data      = { token = "sensitive::${repo.name}_vcs_token" }
-      } if repo.type == "ops" && contains(repo._namespace.environments, cluster._env.id)
+      } if contains(repo._namespace.environments, cluster._env.id)
     })
   }
 
