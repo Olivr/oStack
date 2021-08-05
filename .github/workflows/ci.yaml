@@ -131,7 +131,6 @@ jobs:
         run: terraform plan -input=false -out tf.plan
         working-directory: ${{ env.path }}
         env:
-          TF_VAR_organization_title: Test
           TF_VAR_organization_name: olivr-test
           TF_VAR_cloud_default_provider: linode
           TF_VAR_globalinfra_repo_name: ""
@@ -161,7 +160,6 @@ jobs:
         run: terraform test
         working-directory: ${{ env.path }}
         env:
-          TF_VAR_organization_title: Test
           TF_VAR_organization_name: olivr-test
           TF_VAR_tfe_oauth_token_id: ${{ secrets.TFE_OAUTH_TOKEN_ID }}
           TF_VAR_vcs_token_write: ${{ secrets.COPYBARA_TOKEN }}

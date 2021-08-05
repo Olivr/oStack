@@ -2,7 +2,7 @@
 # Main variables
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
-  organization_name     = var.organization_name != null && var.organization_name != "" ? var.organization_name : lower(replace(replace(var.organization_title, " ", "-"), "/[^a-zA-Z0-9-]/", ""))
+  organization_title    = var.organization_title != null && var.organization_title != "" ? var.organization_title : title(replace(var.organization_name, "-", " "))
   globalinfra_repo_name = lookup(local.dev, "globalinfra_repo_name", var.globalinfra_repo_name)
 }
 

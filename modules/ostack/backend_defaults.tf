@@ -2,7 +2,7 @@
 # Main variables
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
-  backend_organization_name = var.backend_organization_name != null && var.backend_organization_name != "" ? var.backend_organization_name : local.organization_name
+  backend_organization_name = var.backend_organization_name != null && var.backend_organization_name != "" ? var.backend_organization_name : var.organization_name
 
   backend_configuration = { for provider in keys(local.backend_configuration_simple) :
     provider => merge(

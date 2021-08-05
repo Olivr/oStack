@@ -22,7 +22,7 @@ locals {
     kube_config  = null
     nodes        = { "g6-standard-1" = 2 }
     region       = "us-central"
-    tags         = setunion(var.tags, [local.organization_name])
+    tags         = setunion(var.tags, [var.organization_name])
   }
 
   cluster_configuration_defaults = {

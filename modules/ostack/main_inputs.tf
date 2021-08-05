@@ -3,13 +3,16 @@
 # These parameters must be specified.
 # ---------------------------------------------------------------------------------------------------------------------
 # Global
-variable "organization_title" {
-  description = "Human-friendly organization title (eg. My Super Startup)."
+variable "organization_name" {
+  description = <<-DESC
+    Computer-friendly organization name (eg. my-startup).
+    Use only letters, numbers and dashes to maximize compatibility across every system.
+    DESC
   type        = string
 
   validation {
-    condition     = var.organization_title != null && var.organization_title != ""
-    error_message = "You must specify a title for your organization."
+    error_message = "Organization name must only contain alphanumeric characters. It may contain '-' but cannot start or finish with it."
+    condition     = can(regex("^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?([a-zA-Z0-9]([-a-zA-Z0-9]*[a-zA-Z0-9])?)*$", var.organization_name))
   }
 }
 
@@ -18,18 +21,10 @@ variable "organization_title" {
 # These parameters have reasonable defaults.
 # ---------------------------------------------------------------------------------------------------------------------
 # Global
-variable "organization_name" {
-  description = <<-DESC
-    Computer-friendly organization name (eg. my-super-startup).
-    Use only letters, numbers and dashes to maximize compatibility across every system.
-    DESC
+variable "organization_title" {
+  description = "Human-friendly organization title (eg. My Startup)."
   type        = string
   default     = null
-
-  validation {
-    error_message = "Organization name must only contain alphanumeric characters. It may contain '-' but cannot start or finish with it."
-    condition     = var.organization_name == null || can(regex("^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?([a-zA-Z0-9]([-a-zA-Z0-9]*[a-zA-Z0-9])?)*$", var.organization_name))
-  }
 }
 
 variable "lang" {

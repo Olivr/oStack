@@ -2,7 +2,7 @@
 # Main variables
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
-  vcs_organization_name = var.vcs_organization_name != null && var.vcs_organization_name != "" ? var.vcs_organization_name : local.organization_name
+  vcs_organization_name = var.vcs_organization_name != null && var.vcs_organization_name != "" ? var.vcs_organization_name : var.organization_name
 
   vcs_configuration = { for provider in keys(local.vcs_configuration_defaults) :
     provider => merge(
@@ -58,7 +58,7 @@ locals {
     repo_template                    = null
     repo_vulnerability_alerts        = true
     sensitive_inputs                 = {}
-    tags                             = setunion(var.tags, [local.organization_name])
+    tags                             = setunion(var.tags, [var.organization_name])
     team_configuration = {
       admin    = []
       maintain = []
