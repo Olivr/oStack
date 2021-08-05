@@ -8,12 +8,7 @@ locals {
   globalops = merge(
     local.globalops_defaults,
     {
-      backends = { for id, backend in local.globalops_backends :
-        id => merge(backend, {
-          tf_vars_hcl      = local.globalops_backends_tf_vars_hcl[id]
-          sensitive_inputs = local.globalops_backend_sensitive_inputs[id]
-        })
-      }
+      backends = local.globalops_backends
       vcs = merge(local.globalops_defaults.vcs, {
         branch_status_checks = setunion(local.globalops_defaults_vcs.branch_status_checks, local.globalops_status_checks)
         files                = local.globalops_defaults_vcs.branch_protection ? {} : local.globalops_files
@@ -92,16 +87,38 @@ locals {
   globalops_teams_writers     = ["global_ops", "global_infra"]
   globalops_teams_readers     = keys(local.teams) # All teams can read
 
-  globalops_backends = local.backend_configuration[var.backend_default_provider].separate_environments ? { for id, env in local.environments :
-    id => merge(local.globalops_defaults_backend, {
-      _env                  = { id = id }
-      name                  = "${local.globalops_defaults_base.name}-${env.name}"
-      description           = "${local.globalops_defaults_base.description} (${env.name})"
-      vcs_working_directory = "${local.globalops_defaults_gitops.infra_dir}/${env.name}"
+  globalops_backends = { for cluster_id, cluster in local.environments_clusters :
+    (cluster.name) => merge(local.globalops_defaults_backend, {
+      _cluster_name         = cluster.name
+      _env_name             = cluster._env.name
+      name                  = "${local.globalops_defaults_base.name}-${cluster._env.name}-${cluster.name}"
+      description           = "${local.globalops_defaults_base.description} (${cluster.name})"
+      vcs_working_directory = "${local.globalops_defaults_gitops.infra_dir}/${cluster._env.name}-${cluster.name}"
       vcs_trigger_paths     = ["${local.globalops_defaults_gitops.infra_dir}/shared-modules"]
-      auto_apply            = env.continuous_delivery
-    })
-  } : { keys(local.environments)[0] = merge(local.globalops_defaults_backend, { _env = null }) }
+      auto_apply            = cluster._env.continuous_delivery
+      tf_vars = merge(local.globalops_defaults_backend.tf_vars, {
+        kube_host           = local.clusters_k8s[cluster_id].kube_host
+        kube_token          = "sensitive::kube_token"
+        kube_ca_certificate = local.clusters_k8s[cluster_id].kube_ca_certificate
+      })
+      tf_vars_hcl = merge(local.globalops_defaults_backend.tf_vars_hcl, {
+        sensitive_inputs = "sensitive::sensitive_inputs"
+      })
+      sensitive_inputs = merge(local.globalops_defaults_backend.sensitive_inputs, {
+        kube_token = sensitive(local.clusters_k8s[cluster_id].kube_token)
+        sensitive_inputs = replace(jsonencode(merge({
+          "${local.globalops_defaults_base.name}_private_key" = sensitive(tls_private_key.cluster_keys[cluster_id].private_key_pem)
+          "${local.globalops_defaults_base.name}_vcs_token"   = sensitive(var.vcs_write_token[var.vcs_default_provider])
+          }, merge([for id, repo in local.namespaces_repos :
+            {
+              "${repo.name}_private_key" = sensitive(tls_private_key.ns_keys["${id}_${cluster_id}"].private_key_pem)
+              "${repo.name}_vcs_token"   = sensitive(var.vcs_write_token[repo.vcs.provider])
+            } if repo.type == "ops" && contains(repo._namespace.environments, cluster._env.id)
+          ]...)
+        )), "/(\".*?\"):/", "$1 = ") # https://brendanthompson.com/til/2021/3/hcl-enabled-tfe-variables
+      })
+    }) if cluster.bootstrap
+  }
 
   globalops_status_checks = [for backend in local.globalops_backends :
     format(local.backend_provider_configuration[backend.provider].status_check_format, backend.name)
@@ -232,39 +249,41 @@ locals {
   }
 
 
-  globalops_backend_sensitive_inputs = { for id, backend in local.globalops_backends :
-    id => merge(
-      backend.sensitive_inputs,
-      {
-        sensitive_inputs_per_cluster = replace(jsonencode(merge([for cluster_id, cluster in local.environments_clusters : {
-          (cluster.name) = merge({
-            kube_token                                          = sensitive(local.clusters_k8s[cluster_id].kube_token)
-            "${local.globalops_defaults_base.name}_private_key" = sensitive(tls_private_key.cluster_keys[cluster_id].private_key_pem)
-            "${local.globalops_defaults_base.name}_vcs_token"   = sensitive(var.vcs_write_token[var.vcs_default_provider])
-            }, merge([for id, repo in local.namespaces_repos :
-              {
-                "${repo.name}_private_key" = sensitive(tls_private_key.ns_keys["${id}_${cluster_id}"].private_key_pem)
-                "${repo.name}_vcs_token"   = sensitive(var.vcs_write_token[repo.vcs.provider])
-              } if repo.type == "ops" && contains(repo._namespace.environments, cluster._env.id)
-            ]...)
-          )
-          } if cluster.bootstrap && (!backend.separate_environments || cluster._env.id == backend._env.id)
-        ]...)), "/(\".*?\"):/", "$1 = ") # https://brendanthompson.com/til/2021/3/hcl-enabled-tfe-variables
-      }
-  ) }
+  # globalops_backend_sensitive_inputs = { for id, backend in local.globalops_backends :
+  #   id => merge(
+  #     backend.sensitive_inputs,
+  #     {
+  #       sensitive_inputs_per_cluster = replace(jsonencode(merge([for cluster_id, cluster in local.environments_clusters : {
+  #         (cluster.name) = merge({
+  #           kube_token                                          = sensitive(local.clusters_k8s[cluster_id].kube_token)
+  #           "${local.globalops_defaults_base.name}_private_key" = sensitive(tls_private_key.cluster_keys[cluster_id].private_key_pem)
+  #           "${local.globalops_defaults_base.name}_vcs_token"   = sensitive(var.vcs_write_token[var.vcs_default_provider])
+  #           }, merge([for id, repo in local.namespaces_repos :
+  #             {
+  #               "${repo.name}_private_key" = sensitive(tls_private_key.ns_keys["${id}_${cluster_id}"].private_key_pem)
+  #               "${repo.name}_vcs_token"   = sensitive(var.vcs_write_token[repo.vcs.provider])
+  #             } if repo.type == "ops" && contains(repo._namespace.environments, cluster._env.id)
+  #           ]...)
+  #         )
+  #         } if cluster.bootstrap && (!backend.separate_environments || cluster._env.id == backend._env.id)
+  #       ]...)), "/(\".*?\"):/", "$1 = ") # https://brendanthompson.com/til/2021/3/hcl-enabled-tfe-variables
+  #     }
+  #   )
+  # }
 
-  globalops_backends_tf_vars_hcl = { for id, backend in local.globalops_backends :
-    id => merge(backend.tf_vars_hcl,
-      {
-        sensitive_inputs_per_cluster = "sensitive::sensitive_inputs_per_cluster"
-        clusters = replace(jsonencode(merge([for cluster_id, cluster in local.environments_clusters : {
-          (cluster.name) = {
-            kube_host           = local.clusters_k8s[cluster_id].kube_host
-            kube_token          = "sensitive::kube_token"
-            kube_ca_certificate = local.clusters_k8s[cluster_id].kube_ca_certificate
-          }
-          } if cluster.bootstrap && (!backend.separate_environments || cluster._env.id == backend._env.id)
-        ]...)), "/(\".*?\"):/", "$1 = ") # https://brendanthompson.com/til/2021/3/hcl-enabled-tfe-variables
-    })
-  }
+  # globalops_backends_tf_vars_hcl = { for id, backend in local.globalops_backends :
+  #   id => merge(backend.tf_vars_hcl,
+  #     {
+  #       sensitive_inputs_per_cluster = "sensitive::sensitive_inputs_per_cluster"
+  #       clusters = replace(jsonencode(merge([for cluster_id, cluster in local.environments_clusters : {
+  #         (cluster.name) = {
+  #           kube_host           = local.clusters_k8s[cluster_id].kube_host
+  #           kube_token          = "sensitive::kube_token"
+  #           kube_ca_certificate = local.clusters_k8s[cluster_id].kube_ca_certificate
+  #         }
+  #         } if cluster.bootstrap && (!backend.separate_environments || cluster._env.id == backend._env.id)
+  #       ]...)), "/(\".*?\"):/", "$1 = ") # https://brendanthompson.com/til/2021/3/hcl-enabled-tfe-variables
+  #     }
+  #   )
+  # }
 }

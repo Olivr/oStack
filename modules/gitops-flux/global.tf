@@ -5,7 +5,6 @@ locals {
   global_files_strict = merge(
     local.global_infra,
     local.global_infra_local,
-    local.global_infra_clusters_merged,
     local.global_infra_cluster_init,
     local.global_base,
     local.global_flux,
@@ -36,63 +35,55 @@ data "flux_sync" "main" {
 # Computations
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
-  combined_infra = !try(var.global.backends[keys(var.global.backends)[0]].separate_environments, false)
-
-  global_infra = merge([for backend in values(var.global.backends) :
-    {
-      "${trim(backend.vcs_working_directory, "/")}/_inputs.tf"    = file("${path.module}/templates/global/infra/_inputs.tf.tpl")
-      "${trim(backend.vcs_working_directory, "/")}/_providers.tf" = file("${path.module}/templates/global/infra/_providers.tf.tpl")
-    }
-  ]...)
-
-  # Workaround to allow for static variable resolution (Terraform needs to know at least the keys)
-  # We identify the keys first, then the values and then we merge the two maps together
-  global_infra_clusters = merge(distinct(flatten([for backend_id, backend in var.global.backends :
-    [for env_id, env in var.environments :
-      [for cluster in values(env.clusters) :
-        { "${trim(backend.vcs_working_directory, "/")}/${cluster.name}.tf" = "" } if cluster.bootstrap
-      ] if backend_id == env_id || !backend.separate_environments
-    ]
-  ]))...)
-
-  global_infra_clusters_values = merge(distinct(flatten([for backend_id, backend in var.global.backends :
-    [for env_id, env in var.environments :
-      [for cluster in values(env.clusters) :
-        {
-          "${trim(backend.vcs_working_directory, "/")}/${cluster.name}.tf" = templatefile("${path.module}/templates/global/infra/cluster.tf.tpl", {
-            base_dir      = local.base_dir
-            base_path     = !backend.separate_environments ? "../.." : "../../.."
-            cluster       = cluster.name
-            cluster_path  = "./${env.name}/${cluster.name}/${local.base_dir}"
-            deploy_keys   = replace(jsonencode(var.deploy_keys[cluster.name]), "/(\".*?\"):/", "$1 = ") # https://brendanthompson.com/til/2021/3/hcl-enabled-tfe-variables
-            module_source = local.cluster_init_path != null ? (!backend.separate_environments ? "./modules/init-cluster" : "../shared-modules/init-cluster") : var.init_cluster.module_source
-            namespaces    = join("\",\"", local.environment_tenants[env.name])
-            secrets       = replace(jsonencode(var.secrets[cluster.name]), "/(\".*?\"):/", "$1 = ") # https://brendanthompson.com/til/2021/3/hcl-enabled-tfe-variables
-          })
-        } if cluster.bootstrap
-      ] if backend_id == env_id || !backend.separate_environments
-    ]
-  ]))...)
-
-  global_infra_clusters_merged = { for file_path in keys(local.global_infra_clusters) :
-    file_path => local.global_infra_clusters_values[file_path]
+  global_infra = { for backend in values(var.global.backends) :
+    "${trim(backend.vcs_working_directory, "/")}/main.tf" => templatefile("${path.module}/templates/global/infra/remote.tf.tpl", {
+      base_dir      = local.base_dir
+      base_path     = "../../.."
+      cluster_path  = "./${backend._env_name}/${backend._cluster_name}/${local.base_dir}"
+      deploy_keys   = replace(jsonencode(var.deploy_keys[backend._cluster_name]), "/(\".*?\"):/", "$1 = ") # https://brendanthompson.com/til/2021/3/hcl-enabled-tfe-variables
+      module_source = local.cluster_init_path != null ? "../shared-modules/init-cluster" : var.init_cluster.module_source
+      namespaces    = join("\",\"", local.environment_tenants[backend._env_name])
+      secrets       = replace(jsonencode(var.secrets[backend._cluster_name]), "/(\".*?\"):/", "$1 = ") # https://brendanthompson.com/til/2021/3/hcl-enabled-tfe-variables
+    })
   }
+
+  # global_infra_clusters = merge(distinct(flatten([for backend_id, backend in var.global.backends :
+  #   [for env_id, env in var.environments :
+  #     [for cluster in values(env.clusters) :
+  #       {
+  #         "${trim(backend.vcs_working_directory, "/")}/${cluster.name}.tf" = templatefile("${path.module}/templates/global/infra/cluster.tf.tpl", {
+  #           base_dir      = local.base_dir
+  #           base_path     = !backend.separate_environments ? "../.." : "../../.."
+  #           cluster       = cluster.name
+  #           cluster_path  = "./${env.name}/${cluster.name}/${local.base_dir}"
+  #           deploy_keys   = replace(jsonencode(var.deploy_keys[cluster.name]), "/(\".*?\"):/", "$1 = ") # https://brendanthompson.com/til/2021/3/hcl-enabled-tfe-variables
+  #           module_source = local.cluster_init_path != null ? (!backend.separate_environments ? "./modules/init-cluster" : "../shared-modules/init-cluster") : var.init_cluster.module_source
+  #           namespaces    = join("\",\"", local.environment_tenants[env.name])
+  #           secrets       = replace(jsonencode(var.secrets[cluster.name]), "/(\".*?\"):/", "$1 = ") # https://brendanthompson.com/til/2021/3/hcl-enabled-tfe-variables
+  #         })
+  #       } if cluster.bootstrap
+  #     ] if backend_id == env_id || !backend.separate_environments
+  #   ]
+  # ]))...)
+
+  # global_infra_clusters_merged = { for file_path, file_content in local.global_infra_clusters :
+  #   file_path => local.global_infra_clusters_values[file_path]
+  # }
 
   # Init cluster file for local clusters (CI and dev)
   global_infra_local = {
-    "${local.infra_dir}/_local/_providers.tf"         = file("${path.module}/templates/global/infra/_providers.tf.tpl")
     "${local.infra_dir}/_local/terraform.tfvars.json" = var.local_var_template
-    "${local.infra_dir}/_local/main.tf" = templatefile("${path.module}/templates/global/infra/_local.tpl", {
+    "${local.infra_dir}/_local/main.tf" = templatefile("${path.module}/templates/global/infra/local.tf.tpl", {
       base_dir      = local.base_dir
       deploy_keys   = replace(jsonencode(var.deploy_keys["_ci"]), "/(\".*?\"):/", "$1 = ") # https://brendanthompson.com/til/2021/3/hcl-enabled-tfe-variables
-      module_source = local.cluster_init_path != null ? (local.combined_infra ? "../modules/init-cluster" : "../shared-modules/init-cluster") : var.init_cluster.module_source
+      module_source = local.cluster_init_path != null ? "../shared-modules/init-cluster" : var.init_cluster.module_source
       namespaces    = join("\",\"", keys(local.tenants))
     })
   }
 
   # If the init module is a path (as opposed to a remote module), load all files from the path
   global_infra_cluster_init = local.cluster_init_path != null ? { for path in fileset(local.cluster_init_path, "**") :
-    "${local.infra_dir}/${local.combined_infra ? "" : "shared-"}modules/init-cluster/${path}" => file("${local.cluster_init_path}/${path}")
+    "${local.infra_dir}/shared-modules/init-cluster/${path}" => file("${local.cluster_init_path}/${path}")
   } : {}
 
   # Base directory (_ostack)
