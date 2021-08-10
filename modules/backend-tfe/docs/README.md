@@ -21,10 +21,12 @@ No modules.
 
 | Name | Type |
 | --- | --- |
+| [tfe_run_trigger.triggers](https://registry.terraform.io/providers/hashicorp/tfe/latest/docs/resources/run_trigger) | resource |
 | [tfe_variable.env_variables](https://registry.terraform.io/providers/hashicorp/tfe/latest/docs/resources/variable) | resource |
 | [tfe_variable.tf_vars](https://registry.terraform.io/providers/hashicorp/tfe/latest/docs/resources/variable) | resource |
 | [tfe_variable.tf_vars_hcl](https://registry.terraform.io/providers/hashicorp/tfe/latest/docs/resources/variable) | resource |
 | [tfe_workspace.workspace](https://registry.terraform.io/providers/hashicorp/tfe/latest/docs/resources/workspace) | resource |
+| [tfe_workspace.triggers](https://registry.terraform.io/providers/hashicorp/tfe/latest/docs/data-sources/workspace) | data source |
 
 ## Inputs
 
@@ -43,6 +45,7 @@ No modules.
 | <a name="input_workspace_env_vars"></a> [workspace_env_vars](#input_workspace_env_vars) | Environment variables to add to the workspace. You can pass sensitive values by setting the secret value to `sensitive::key` where `key` refers to a value in `sensitive_inputs`. | `map(string)` | `{}` | no |
 | <a name="input_workspace_tf_vars"></a> [workspace_tf_vars](#input_workspace_tf_vars) | Secrets to add to the workspace. You can pass sensitive values by setting the secret value to `sensitive::key` where `key` refers to a value in `sensitive_inputs`. | `map(string)` | `{}` | no |
 | <a name="input_workspace_tf_vars_hcl"></a> [workspace_tf_vars_hcl](#input_workspace_tf_vars_hcl) | Terraform variables to add to the workspace. You can pass sensitive values by setting the secret value to `sensitive::key` where `key` refers to a value in `sensitive_inputs`. | `map(string)` | `{}` | no |
+| <a name="input_workspace_triggers"></a> [workspace_triggers](#input_workspace_triggers) | Workspace names that, when an apply successfully ran, will trigger a run on the current workspace. | `set(string)` | `[]` | no |
 
 ## Outputs
 

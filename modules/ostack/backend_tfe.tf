@@ -20,6 +20,7 @@ module "backends_namespaces_tfe" {
   workspace_organization = local.backend_organization_name
   workspace_tf_vars      = each.value.tf_vars
   workspace_tf_vars_hcl  = each.value.tf_vars_hcl
+  workspace_triggers     = each.value.workspace_triggers
 }
 
 module "backends_globalops_tfe" {
@@ -41,4 +42,5 @@ module "backends_globalops_tfe" {
   workspace_organization = local.backend_organization_name
   workspace_tf_vars      = local.globalops.backends[each.key].tf_vars
   workspace_tf_vars_hcl  = local.globalops.backends[each.key].tf_vars_hcl
+  workspace_triggers     = local.globalops.backends[each.key].workspace_triggers
 }

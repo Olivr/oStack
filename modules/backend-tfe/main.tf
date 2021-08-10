@@ -58,3 +58,15 @@ resource "tfe_variable" "env_variables" {
     ) : (each.value
   )
 }
+
+data "tfe_workspace" "triggers" {
+  for_each     = var.workspace_triggers
+  name         = each.value
+  organization = var.workspace_organization
+}
+
+resource "tfe_run_trigger" "triggers" {
+  for_each      = var.workspace_triggers
+  workspace_id  = tfe_workspace.workspace.id
+  sourceable_id = data.tfe_workspace.triggers[each.value].id
+}

@@ -35,6 +35,7 @@ locals {
     tfe_oauth_token_id    = null
     vcs_working_directory = ""
     vcs_trigger_paths     = []
+    workspace_triggers    = toset(compact([local.globalinfra_backend_workspace_name]))
   }
 
   backend_configuration_defaults = {

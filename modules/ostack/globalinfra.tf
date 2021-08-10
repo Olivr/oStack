@@ -3,7 +3,7 @@
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
   globalinfra = {
-    name        = local.globalinfra_repo_name
+    name        = local.globalinfra_vcs_repo_name
     description = format(local.i18n.repo_globalinfra_description, local.organization_title)
     vcs = merge(local.vcs_configuration[var.vcs_default_provider], {
       repo_exists = true

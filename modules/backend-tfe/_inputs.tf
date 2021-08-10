@@ -63,6 +63,16 @@ variable "workspace_env_vars" {
   }
 }
 
+variable "workspace_triggers" {
+  description = "Workspace names that, when an apply successfully ran, will trigger a run on the current workspace."
+  type        = set(string)
+  default     = []
+  validation {
+    error_message = "Null values are not accepted. Use empty values instead."
+    condition     = var.workspace_triggers != null
+  }
+}
+
 variable "vcs_repo_path" {
   description = "VCS repository path (<organization>/<repository>)."
   type        = string
