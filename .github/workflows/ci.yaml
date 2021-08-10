@@ -11,10 +11,15 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       modules: ${{ steps.modules.outputs.matrix }}
+      examples: ${{ steps.examples.outputs.matrix }}
     steps:
       - uses: actions/checkout@v2
+
       - id: modules
         run: echo "::set-output name=matrix::[$(modules=($(ls modules)); printf '"%s",' "${modules[@]}")]"
+
+      - id: examples
+        run: echo "::set-output name=matrix::[$(examples=($(ls examples/*.tf | sed -E 's`^examples/(.*)\.tf$`\1`')); printf '"%s",' "${examples[@]}")]"
 
   unit:
     name: Unit test ${{ matrix.path }}
@@ -23,7 +28,7 @@ jobs:
     strategy:
       matrix:
         path: ${{fromJSON(needs.matrix.outputs.modules)}}
-      fail-fast: true
+      fail-fast: false
     env:
       path: modules/${{ matrix.path }}
 
@@ -80,17 +85,30 @@ jobs:
         name: Terraform security scan
         run: docker run -v "$(pwd):/src" tfsec/tfsec /src/${{ env.path }}
 
-      - if: github.event_name == 'push' || steps.changed.outputs.changed == 'true'
-        name: Run checkov
-        run: docker run -v "$(pwd):/src" bridgecrew/checkov -d /src/${{ env.path }} --config-file /src/.config/.checkov.yaml --compact
+      # - if: github.event_name == 'push' || steps.changed.outputs.changed == 'true'
+      #   name: Run checkov
+      #   run: docker run -v "$(pwd):/src" bridgecrew/checkov -d /src/${{ env.path }} --config-file /src/.config/.checkov.yaml --compact
 
   e2e:
     name: End-to-end test oStack
     if: github.event_name == 'push' || (github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]')
     needs: [matrix, unit]
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        test_case: ${{fromJSON(needs.matrix.outputs.examples)}}
+      fail-fast: false
     env:
-      path: modules/ostack
+      TF_VAR_organization_name: olivr-test
+      TF_VAR_cloud_default_provider: linode
+      TF_VAR_tfe_oauth_token_id: ${{ secrets.TFE_OAUTH_TOKEN_ID }}
+      TF_VAR_vcs_write_token: '{ github="${{ secrets.COPYBARA_TOKEN }}" }'
+      TF_VAR_sensitive_inputs: '{ my_other_secret = "This is marked as sensitive" }'
+      GITHUB_TOKEN: ${{ secrets.COPYBARA_TOKEN }}
+      GITHUB_OWNER: olivr-test
+      LINODE_TOKEN: ${{ secrets.LINODE_TOKEN }}
+      DIGITALOCEAN_TOKEN: ${{ secrets.DIGITALOCEAN_TOKEN }}
+      TFE_TOKEN: ${{ secrets.TFE_TOKEN }}
 
     steps:
       - name: Checkout repo
@@ -99,73 +117,49 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v1
 
-      - name: Check Terraform format
-        run: terraform fmt -check -recursive -diff
-        working-directory: ${{ env.path }}
+      - name: Prepare test case
+        run: TEST_NAME=$(sed -E 's`[^a-z0-9]`-`g' <<< "${{ matrix.test_case }}"); cp -a examples/common/. . && cat "examples/${{ matrix.test_case }}.tf" | sed 's`Olivr/oStack/oStack`./modules/ostack`g' | sed 's`version\s*=\s*".*$`prefix = "'"$TEST_NAME"'-"`' | sed 's`repo_archive_on_destroy\s*=.*$`repo_archive_on_destroy = false\nrepo_private = false`' > main.tf
 
       - name: Initialize Terraform
         run: terraform init
-        working-directory: ${{ env.path }}
 
       - name: Validate Terraform config
         run: terraform validate
-        working-directory: ${{ env.path }}
-
-      - name: Setup TFLint
-        uses: terraform-linters/setup-tflint@v1
-        with:
-          github_token: ${{ github.token }}
-
-      - name: Init TFLint
-        run: tflint --init --config=../../.config/.tflint.hcl
-        working-directory: ${{ env.path }}
-
-      - name: Run TFLint
-        run: tflint --format=compact --config=../../.config/.tflint.hcl --module
-        working-directory: ${{ env.path }}
 
       - name: Terraform security scan
-        run: docker run -v "$(pwd):/src" tfsec/tfsec /src/${{ env.path }}
+        run: docker run -v "$(pwd):/src" tfsec/tfsec /src
 
       - name: Run Terraform plan
         run: terraform plan -input=false -out tf.plan
-        working-directory: ${{ env.path }}
-        env:
-          TF_VAR_organization_name: olivr-test
-          TF_VAR_cloud_default_provider: linode
-          TF_VAR_globalinfra_repo_name: ""
-          TF_VAR_backend_configuration_base: '{tfe={tfe_oauth_token_id="${{ secrets.TFE_OAUTH_TOKEN_ID }}"}}'
-          TF_VAR_vcs_write_token: '{github="${{ secrets.COPYBARA_TOKEN }}"}'
-          GITHUB_TOKEN: ${{ secrets.COPYBARA_TOKEN }}
-          LINODE_TOKEN: ${{ secrets.LINODE_TOKEN }}
-          TFE_TOKEN: ${{ secrets.TFE_TOKEN }}
 
       - name: Convert Terraform plan to JSON
         run: terraform show -json tf.plan > tf.plan.json
-        working-directory: ${{ env.path }}
 
       - name: Prettify JSON plan to get meaningful errors in checkov
         # A weird GH actions bug injects actions metadata in the output so we filter only the lines containing JSON
         run: grep '^{"' tf.plan.json | jq '.' > tf.plan.pretty.json
-        working-directory: ${{ env.path }}
 
       - name: Remove extraneous plan files
-        run: rm -rf tf.plan tf.plan.json
-        working-directory: ${{ env.path }}
+        run: rm -rf tf.plan.json
 
       - name: Run checkov
-        run: docker run -v "$(pwd):/src" bridgecrew/checkov -d /src --config-file /src/.config/.checkov.yaml --repo-root-for-plan-enrichment /src/modules/ostack
+        run: docker run -v "$(pwd):/src" bridgecrew/checkov -d /src --config-file /src/.config/.checkov.yaml --repo-root-for-plan-enrichment /src
 
-      - name: Run tests
-        run: terraform test
-        working-directory: ${{ env.path }}
-        env:
-          TF_VAR_organization_name: olivr-test
-          TF_VAR_tfe_oauth_token_id: ${{ secrets.TFE_OAUTH_TOKEN_ID }}
-          TF_VAR_vcs_token_write: ${{ secrets.COPYBARA_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.COPYBARA_TOKEN }}
-          LINODE_TOKEN: ${{ secrets.LINODE_TOKEN }}
-          TFE_TOKEN: ${{ secrets.TFE_TOKEN }}
+      - name: Apply Terraform
+        run: terraform apply -auto-approve tf.plan
+
+      - name: Destroy Terraform
+        run: terraform destroy -auto-approve
+      # - name: Run tests
+      #   run: terraform test
+      #   env:
+      #     TF_VAR_organization_name: olivr-test
+      #     TF_VAR_globalinfra_vcs_repo_name: null
+      #     TF_VAR_tfe_oauth_token_id: ${{ secrets.TFE_OAUTH_TOKEN_ID }}
+      #     TF_VAR_vcs_token_write: ${{ secrets.COPYBARA_TOKEN }}
+      #     GITHUB_TOKEN: ${{ secrets.COPYBARA_TOKEN }}
+      #     LINODE_TOKEN: ${{ secrets.LINODE_TOKEN }}
+      #     TFE_TOKEN: ${{ secrets.TFE_TOKEN }}
 
   finalizer:
     name: Passed all CI tests

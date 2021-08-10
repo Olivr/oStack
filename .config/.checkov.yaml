@@ -8,3 +8,4 @@ framework: all
 soft-fail: false
 skip-check:
   - CKV_SECRET_6
+  - CKV_GIT_1
