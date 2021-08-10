@@ -121,7 +121,7 @@ variable "globalinfra_vcs_repo_name" {
     Set to `null` if you don't want oStack to manage this repo at all.
     DESC
   type        = string
-  default     = "global-infra"
+  default     = null
 }
 
 variable "globalinfra_backend_workspace_name" {
@@ -132,5 +132,5 @@ variable "globalinfra_backend_workspace_name" {
     Set to `null` if you don't want runs to propagate.
     DESC
   type        = string
-  default     = "global-infra"
+  default     = null
 }
