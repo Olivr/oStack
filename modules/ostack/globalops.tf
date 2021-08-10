@@ -107,7 +107,7 @@ locals {
       sensitive_inputs = merge(local.globalops_defaults_backend.sensitive_inputs, {
         kube_token = sensitive(local.clusters_k8s[cluster_id].kube_token)
         sensitive_inputs = replace(jsonencode(merge({
-          "sops-gpg"                                          = try(module.gpg_keys[cluster_id].private_key, "")
+          "sops-gpg"                                          = try(gpg_private_key.cluster_keys[cluster_id].private_key, "")
           "${local.globalops_defaults_base.name}_private_key" = sensitive(tls_private_key.cluster_keys[cluster_id].private_key_pem)
           "${local.globalops_defaults_base.name}_vcs_token"   = sensitive(var.vcs_write_token[var.vcs_default_provider])
           }, merge([for id, repo in local.namespaces_repos_ops :

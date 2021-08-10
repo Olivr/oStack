@@ -108,8 +108,8 @@ locals {
 
   environments_clusters_combined = { for id, cluster in merge(local.environments_clusters_existing, local.environments_clusters_create) :
     id => merge(cluster, {
-      gpg_fingerprint = try(try(module.gpg_keys[id].fingerprint, cluster.gpg_fingerprint), null)
-      gpg_public_key  = try(try(module.gpg_keys[id].public_key, cluster.gpg_public_key), null)
+      gpg_fingerprint = try(try(gpg_private_key.cluster_keys[id].fingerprint, cluster.gpg_fingerprint), null)
+      gpg_public_key  = try(try(gpg_private_key.cluster_keys[id].public_key, cluster.gpg_public_key), null)
     })
   }
 
@@ -121,18 +121,4 @@ locals {
       }
     }
   }
-}
-
-# ---------------------------------------------------------------------------------------------------------------------
-# Resources
-# ---------------------------------------------------------------------------------------------------------------------
-module "gpg_keys" {
-  source = "../gpg-key"
-
-  for_each = { for id, cluster in merge(local.environments_clusters_existing, local.environments_clusters_create) :
-    id => cluster if cluster.bootstrap && lookup(cluster, "gpg_fingerprint", null) == null
-  }
-
-  name    = each.value.name
-  comment = local.organization_title
 }
