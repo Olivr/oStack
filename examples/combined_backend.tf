@@ -20,7 +20,7 @@ module "oStack" {
   # OPTIONAL INPUTS
   # oStack provide reasonable defaults for these parameters.
   # ---------------------------------------------------------------------------------------------------------------------
-  vcs_configuration_base = {
+  vcs_config_base = {
     github = {
       # Set to false to make it more convenient to experiment with oStack
       # Set back to true or delete this line/block for the long term
@@ -28,7 +28,7 @@ module "oStack" {
     }
   }
 
-  backend_configuration_base = {
+  backend_config_base = {
     tfe = {
       separate_environments = false
       tfe_oauth_token_id    = var.tfe_oauth_token_id
