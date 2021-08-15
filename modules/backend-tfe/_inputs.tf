@@ -12,15 +12,30 @@ variable "workspace_name" {
   type        = string
 }
 
-variable "tfe_oauth_token_id" {
-  description = "Terraform Cloud <> VCS OAuth connection ID."
-  type        = string
-}
-
 # ---------------------------------------------------------------------------------------------------------------------
 # Optional inputs
 # These parameters have reasonable defaults.
 # ---------------------------------------------------------------------------------------------------------------------
+variable "tfe_oauth_token_id" {
+  description = "Terraform Cloud <> VCS OAuth connection ID."
+  type        = string
+  default     = null
+  validation {
+    error_message = "Variable tfe_oauth_token_id cannot be empty."
+    condition     = var.tfe_oauth_token_id != ""
+  }
+}
+
+variable "vcs_repo_path" {
+  description = "VCS repository path (<organization>/<repository>)."
+  type        = string
+  default     = null
+  validation {
+    error_message = "Variable vcs_repo_path cannot be empty."
+    condition     = var.vcs_repo_path != ""
+  }
+}
+
 variable "workspace_description" {
   description = "Terraform Cloud workspace description."
   type        = string
@@ -73,15 +88,14 @@ variable "workspace_triggers" {
   }
 }
 
-variable "vcs_repo_path" {
-  description = "VCS repository path (<organization>/<repository>)."
-  type        = string
-}
-
 variable "vcs_branch_name" {
   description = "VCS repository branch to track."
   type        = string
   default     = "main"
+  validation {
+    error_message = "Variable vcs_branch_name cannot be empty."
+    condition     = var.vcs_branch_name != ""
+  }
 }
 
 variable "vcs_working_directory" {
