@@ -70,6 +70,11 @@ variable "prefix" {
     error_message = "Variable prefix cannot be null."
     condition     = var.prefix != null
   }
+
+  validation {
+    error_message = "Prefix must only contain alphanumeric characters. It may contain '-' but cannot start with it."
+    condition     = var.prefix == "" || can(regex("^([a-zA-Z0-9][a-zA-Z0-9-]*)*$", var.prefix))
+  }
 }
 
 variable "tags" {
@@ -112,25 +117,4 @@ variable "continuous_delivery" {
     error_message = "Variable continuous_delivery cannot be null."
     condition     = var.continuous_delivery != null
   }
-}
-
-variable "globalinfra_vcs_repo_name" {
-  description = <<-DESC
-    Name of the global infra repo so that oStack can apply its settings to it (eg. branch protection, team access)
-    It must be created already on the default VCS provider.
-    Set to `null` if you don't want oStack to manage this repo at all.
-    DESC
-  type        = string
-  default     = null
-}
-
-variable "globalinfra_backend_workspace_name" {
-  description = <<-DESC
-    Name of the global infra backend workspace name so that oStack can propagate backend runs.
-    This is used because Terraform Cloud won't trigger a run when variables values change, but oStack needs to in order to keep the configuration up to date!
-    It must be created already on the default backend provider.
-    Set to `null` if you don't want runs to propagate.
-    DESC
-  type        = string
-  default     = null
 }

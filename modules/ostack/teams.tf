@@ -1,10 +1,11 @@
 # ---------------------------------------------------------------------------------------------------------------------
-# Main variables
+# Exported variables
+# These variables are used in other files
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
   teams = merge(
-    local.global_teams,
-    local.namespace_teams
+    local.teams_global,
+    local.teams_namespaces
   )
 }
 
@@ -14,7 +15,7 @@ locals {
 # Global teams
 locals {
   teams_prefix = var.prefix != "" ? "${var.prefix} " : ""
-  global_teams = {
+  teams_global = {
     global = {
       title       = "${local.teams_prefix}${local.i18n.team_global_name}"
       description = local.i18n.team_global_description
@@ -61,7 +62,7 @@ locals {
   }
 
   # Namespace-specific teams
-  namespace_teams = merge([for id, config in local.namespaces :
+  teams_namespaces = merge([for id, config in local.namespaces :
     {
       "${id}" = {
         title       = format(local.i18n.team_ns_name, "${local.teams_prefix}${config.title}")

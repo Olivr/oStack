@@ -44,10 +44,10 @@ module "vcs_repos_namespaces_github" {
   topics                           = each.value.vcs.tags
   vulnerability_alerts             = each.value.vcs.repo_vulnerability_alerts
   team_permissions = {
-    admin    = each.value.vcs.team_configuration.admin
-    maintain = each.value.vcs.team_configuration.maintain
-    pull     = each.value.vcs.team_configuration.read
-    push     = each.value.vcs.team_configuration.write
+    admin    = each.value.vcs.team_config.admin
+    maintain = each.value.vcs.team_config.maintain
+    pull     = each.value.vcs.team_config.read
+    push     = each.value.vcs.team_config.write
     triage   = []
   }
 }
@@ -87,10 +87,10 @@ module "vcs_repo_globalinfra_github" {
   topics                           = local.globalinfra.vcs.tags
   vulnerability_alerts             = local.globalinfra.vcs.repo_vulnerability_alerts
   team_permissions = {
-    admin    = local.globalinfra.vcs.team_configuration.admin
-    maintain = local.globalinfra.vcs.team_configuration.maintain
-    pull     = local.globalinfra.vcs.team_configuration.read
-    push     = local.globalinfra.vcs.team_configuration.write
+    admin    = local.globalinfra.vcs.team_config.admin
+    maintain = local.globalinfra.vcs.team_config.maintain
+    pull     = local.globalinfra.vcs.team_config.read
+    push     = local.globalinfra.vcs.team_config.write
     triage   = []
   }
 }
@@ -100,39 +100,39 @@ module "vcs_repo_globalops_github" {
 
   for_each = local.vcs_repo_globalops_github
 
-  allow_merge_commit               = local.globalops.vcs.repo_allow_merge_commit
-  allow_rebase_merge               = local.globalops.vcs.repo_allow_rebase_merge
-  allow_squash_merge               = local.globalops.vcs.repo_allow_squash_merge
-  archive_on_destroy               = local.globalops.vcs.repo_archive_on_destroy
-  auto_init                        = local.globalops.vcs.repo_auto_init
-  branch_delete_on_merge           = local.globalops.vcs.branch_delete_on_merge
-  branch_protection                = local.globalops.vcs.branch_protection
-  branch_protection_enforce_admins = local.globalops.vcs.branch_protection_enforce_admins
-  branch_review_count              = local.globalops.vcs.branch_review_count
-  branch_status_checks             = local.globalops.vcs.branch_status_checks
-  deploy_keys                      = local.globalops.vcs.deploy_keys
+  allow_merge_commit               = local.globalops_vcs_create.repo_allow_merge_commit
+  allow_rebase_merge               = local.globalops_vcs_create.repo_allow_rebase_merge
+  allow_squash_merge               = local.globalops_vcs_create.repo_allow_squash_merge
+  archive_on_destroy               = local.globalops_vcs_create.repo_archive_on_destroy
+  auto_init                        = local.globalops_vcs_create.repo_auto_init
+  branch_delete_on_merge           = local.globalops_vcs_create.branch_delete_on_merge
+  branch_protection                = local.globalops_vcs_create.branch_protection
+  branch_protection_enforce_admins = local.globalops_vcs_create.branch_protection_enforce_admins
+  branch_review_count              = local.globalops_vcs_create.branch_review_count
+  branch_status_checks             = local.globalops_vcs_create.branch_status_checks
+  deploy_keys                      = local.globalops_vcs_create.deploy_keys
   description                      = local.globalops.description
-  files                            = local.globalops.vcs.files
-  files_strict                     = local.globalops.vcs.files_strict
-  has_issues                       = local.globalops.vcs.repo_enable_issues
-  has_projects                     = local.globalops.vcs.repo_enable_projects
-  has_wiki                         = local.globalops.vcs.repo_enable_wikis
-  homepage_url                     = local.globalops.vcs.repo_homepage_url
-  is_template                      = local.globalops.vcs.repo_is_template
-  issue_labels                     = local.globalops.vcs.repo_issue_labels
+  files                            = local.globalops_vcs_files_create.files
+  files_strict                     = local.globalops_vcs_files_create.files_strict
+  has_issues                       = local.globalops_vcs_create.repo_enable_issues
+  has_projects                     = local.globalops_vcs_create.repo_enable_projects
+  has_wiki                         = local.globalops_vcs_create.repo_enable_wikis
+  homepage_url                     = local.globalops_vcs_create.repo_homepage_url
+  is_template                      = local.globalops_vcs_create.repo_is_template
+  issue_labels                     = local.globalops_vcs_create.repo_issue_labels
   name                             = local.globalops.name
-  private                          = local.globalops.vcs.repo_private
-  secrets                          = local.globalops.vcs.repo_secrets
-  sensitive_inputs                 = local.globalops.vcs.sensitive_inputs
+  private                          = local.globalops_vcs_create.repo_private
+  secrets                          = local.globalops_vcs_create.repo_secrets
+  sensitive_inputs                 = local.globalops_vcs_create.sensitive_inputs
   teams                            = module.vcs_teams_github["github"].teams
-  template                         = local.globalops.vcs.repo_template
-  topics                           = local.globalops.vcs.tags
-  vulnerability_alerts             = local.globalops.vcs.repo_vulnerability_alerts
+  template                         = local.globalops_vcs_create.repo_template
+  topics                           = local.globalops_vcs_create.tags
+  vulnerability_alerts             = local.globalops_vcs_create.repo_vulnerability_alerts
   team_permissions = {
-    admin    = local.globalops.vcs.team_configuration.admin
-    maintain = local.globalops.vcs.team_configuration.maintain
-    pull     = local.globalops.vcs.team_configuration.read
-    push     = local.globalops.vcs.team_configuration.write
+    admin    = local.globalops_vcs_create.team_config.admin
+    maintain = local.globalops_vcs_create.team_config.maintain
+    pull     = local.globalops_vcs_create.team_config.read
+    push     = local.globalops_vcs_create.team_config.write
     triage   = []
   }
 }
@@ -142,8 +142,10 @@ module "vcs_repo_globalconfig_github" {
 
   for_each = local.vcs_repo_globalconfig_github
   depends_on = [
+    # Make sure the repos it will send a PR to are created
     module.vcs_repo_globalops_github,
     module.vcs_repos_namespaces_github,
+    # Make sure their backends are created also so the first PR can still be merged if any backend status checks are required
     local.backends_namespaces,
     local.backends_globalops
   ]
@@ -178,10 +180,10 @@ module "vcs_repo_globalconfig_github" {
   topics                           = each.value.vcs.tags
   vulnerability_alerts             = each.value.vcs.repo_vulnerability_alerts
   team_permissions = {
-    admin    = each.value.vcs.team_configuration.admin
-    maintain = each.value.vcs.team_configuration.maintain
-    pull     = each.value.vcs.team_configuration.read
-    push     = each.value.vcs.team_configuration.write
+    admin    = each.value.vcs.team_config.admin
+    maintain = each.value.vcs.team_config.maintain
+    pull     = each.value.vcs.team_config.read
+    push     = each.value.vcs.team_config.write
     triage   = []
   }
 }

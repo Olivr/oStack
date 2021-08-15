@@ -8,12 +8,13 @@ output "environments" {
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Computations
+# These variables are referenced in this file only
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
   environments_outputs_prepare = { for env_id, env in local.environments :
     env_id => merge(env, {
       clusters = { for cluster_id, cluster in env.clusters :
-        cluster_id => merge(cluster, try(local.clusters_k8s["${env_id}_${cluster_id}"], null))
+        cluster_id => merge(cluster, try(local.cloud_clusters_k8s["${env_id}_${cluster_id}"], null))
       }
     })
   }

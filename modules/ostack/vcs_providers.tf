@@ -1,5 +1,6 @@
 # ---------------------------------------------------------------------------------------------------------------------
-# Main variables
+# Exported variables
+# These variables are used in other files
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
   vcs_teams = merge(
@@ -37,10 +38,11 @@ locals {
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Computations
+# These variables are referenced in this file only
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
   vcs_providers_in_use = distinct(flatten([
-    local.globalops.vcs.provider,
+    local.globalops_vcs_defaults.provider,
     [for repo in values(local.namespaces_repos) : repo.vcs.provider]
   ]))
 }

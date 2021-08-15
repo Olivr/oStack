@@ -1,49 +1,57 @@
 # ---------------------------------------------------------------------------------------------------------------------
-# Main variables
+# Exported variables
+# These variables are used in other files
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
-  gitops_configuration = { for provider in keys(local.gitops_configuration_simple) :
-    provider => merge(
-      local.gitops_configuration_simple[provider],
-      local.gitops_configuration_complex[provider]
-    )
-  }
+  gitops_config = local.gitops_config_defaults
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Defaults
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
-  gitops_configuration_defaults_base = {
-    base_dir         = "_ostack"
-    tenant_isolation = true
+  gitops_config_base_defaults = {
+    base_dir          = "_base"
+    cluster_init_path = lookup(local.dev, "module_cluster_init", null)
+    environments      = null
+    infra_dir         = "_ostack/bootstrap-clusters"
+    namespaces        = null
+    provider          = null
+    system_dir        = "_ostack"
+    overlay_dir       = "_overlays"
+    tenant_isolation  = true
     init_cluster = {
       module_source  = "Olivr/init-cluster/flux"
       module_version = ""
     }
   }
 
-  gitops_configuration_defaults = {
-    flux = local.gitops_configuration_defaults_base
+  gitops_config_base = {
+    flux = merge(local.gitops_config_base_defaults, {
+      provider = "flux"
+    })
   }
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Computations
+# These variables are referenced in this file only
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
-  # Defaults for simple types
-  gitops_configuration_simple = { for provider, default_settings in local.gitops_configuration_defaults :
-    provider => { for setting, default_value in default_settings :
-      setting => try(var.gitops_configuration_base[provider][setting], null) != null ? var.gitops_configuration_base[provider][setting] : default_value
-      if !contains(["init_cluster"], setting)
-    }
-  }
-
-  # Defaults for complex types
-  gitops_configuration_complex = { for provider, default_settings in local.gitops_configuration_defaults :
-    provider => {
-      init_cluster = merge(default_settings.init_cluster, try(var.gitops_configuration_base[provider].init_cluster, null))
-    }
+  # Merge base gitops configuration with user-defined base configuration
+  gitops_config_defaults = { for provider, base_settings in local.gitops_config_base :
+    provider => merge(
+      # For map types, the base map and user map are merged
+      { for setting, base_value in base_settings :
+        setting => merge(
+          base_value,
+          lookup(try(var.gitops_config_base[provider], {}), setting, null)
+        ) if can(keys(base_value)) # can(keys(base_value)) returns true if base_value is a map
+      },
+      # For all other types (inc. set), overwrite by user-defined value
+      { for setting, base_value in base_settings :
+        setting => lookup(try(var.gitops_config_base[provider], {}), setting, null) != null ? var.gitops_config_base[provider][setting] : base_value if !can(keys(base_value))
+      }
+    )
   }
 }

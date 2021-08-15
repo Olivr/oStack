@@ -1,25 +1,16 @@
 # ---------------------------------------------------------------------------------------------------------------------
-# Main variables
+# Exported variables
+# These variables are used in other files
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
-  clusters_k8s = merge(
-    module.clusters_k8s_linode,
-    module.clusters_k8s_digitalocean,
-    { for id, cluster in local.environments_clusters_existing :
-      id => cluster if cluster.bootstrap
-    }
-  )
+  gitops = merge(
+    module.gitops_flux
+  )["main"]
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Multi-providers
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
-  clusters_k8s_linode = { for id, cluster in local.environments_clusters_create :
-    id => cluster if cluster.provider == "linode"
-  }
-
-  clusters_k8s_digitalocean = { for id, cluster in local.environments_clusters_create :
-    id => cluster if cluster.provider == "digitalocean"
-  }
+  gitops_flux = var.gitops_default_provider == "flux" ? toset(["main"]) : toset([])
 }

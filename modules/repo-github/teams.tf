@@ -1,5 +1,6 @@
 # ---------------------------------------------------------------------------------------------------------------------
 # Computations
+# These variables are referenced in this file only
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
   teams_to_create = merge([for permission, teams in var.team_permissions :

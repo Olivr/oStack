@@ -18,6 +18,7 @@ output "globalconfig_files_strict" {
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Computations
+# These variables are referenced in this file only
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
   globalconfig_outputs = { for provider, config in local.globalconfig :

@@ -1,5 +1,6 @@
 # ---------------------------------------------------------------------------------------------------------------------
 # Computations
+# These variables are referenced in this file only
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
   prepare_maintainers = lookup(var.team_permissions, "maintain", null) == null ? [] : var.team_permissions.maintain
@@ -10,12 +11,8 @@ locals {
 # ---------------------------------------------------------------------------------------------------------------------
 # Resources
 # ---------------------------------------------------------------------------------------------------------------------
-resource "github_branch_protection" "branch" {
+resource "github_branch_protection" "default" {
   count = var.branch_protection ? 1 : 0
-  depends_on = [
-    github_repository_file.files_strict,
-    github_repository_file.files
-  ]
 
   repository_id     = local.repo.node_id
   pattern           = local.repo.default_branch

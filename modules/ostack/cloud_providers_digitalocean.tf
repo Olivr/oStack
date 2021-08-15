@@ -1,10 +1,10 @@
 # ---------------------------------------------------------------------------------------------------------------------
 # Resources
 # ---------------------------------------------------------------------------------------------------------------------
-module "clusters_k8s_linode" {
-  source = "../k8s-cluster-linode"
+module "cloud_clusters_k8s_digitalocean" {
+  source = "../k8s-cluster-digitalocean"
 
-  for_each = local.clusters_k8s_linode
+  for_each = local.cloud_clusters_k8s_digitalocean
 
   kube_version = each.value.kube_version
   name         = each.value.name

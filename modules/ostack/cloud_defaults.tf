@@ -1,11 +1,12 @@
 # ---------------------------------------------------------------------------------------------------------------------
-# Main variables
+# Exported variables
+# These variables are used in other files
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
-  cluster_configuration = { for provider in keys(local.cluster_configuration_simple) :
+  cloud_cluster_config = { for provider in keys(local.cloud_cluster_config_defaults) :
     provider => merge(
-      local.cluster_configuration_simple[provider],
-      local.cluster_configuration_complex[provider]
+      local.cloud_cluster_config_defaults[provider],
+      local.cloud_cluster_config_nodes[provider]
     )
   }
 }
@@ -14,44 +15,57 @@ locals {
 # Defaults
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
-  cluster_configuration_defaults_base = {
-    autoscale    = false
+  cloud_cluster_config_base_defaults = {
+    autoscale    = true
     create       = true
     bootstrap    = true
     kube_version = "1.21"
     kube_config  = null
     nodes        = { "g6-standard-1" = 2 }
+    provider     = null
     region       = "us-central"
     tags         = setunion(var.tags, [var.organization_name])
   }
 
-  cluster_configuration_defaults = {
-    linode = local.cluster_configuration_defaults_base
+  cloud_cluster_config_base = {
+    linode = merge(local.cloud_cluster_config_base_defaults, {
+      provider = "linode"
+    })
 
-    digitalocean = merge(local.cluster_configuration_defaults_base, {
-      autoscale = true
-      nodes     = { "s-1vcpu-2gb" = 2 }
-      region    = "nyc1"
+    digitalocean = merge(local.cloud_cluster_config_base_defaults, {
+      nodes    = { "s-1vcpu-2gb" = 2 }
+      provider = "digitalocean"
+      region   = "nyc1"
     })
   }
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Computations
+# These variables are referenced in this file only
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
-  # Ensure simple types are specified
-  cluster_configuration_simple = { for provider, default_settings in local.cluster_configuration_defaults :
-    provider => { for setting, default_value in default_settings :
-      setting => try(var.cluster_configuration_base[provider][setting], null) != null ? var.cluster_configuration_base[provider][setting] : default_value
-      if !contains(["nodes"], setting)
-    }
+  # Merge base backend configuration with user-defined base configuration
+  cloud_cluster_config_defaults = { for provider, base_settings in local.cloud_cluster_config_base :
+    provider => merge(
+      # For map types, the base map and user map are merged
+      { for setting, base_value in base_settings :
+        setting => merge(
+          base_value,
+          lookup(try(var.cloud_cluster_config_base[provider], {}), setting, null)
+        ) if can(keys(base_value)) # can(keys(base_value)) returns true if base_value is a map
+      },
+      # For all other types (inc. set), overwrite by user-defined value
+      { for setting, base_value in base_settings :
+        setting => lookup(try(var.cloud_cluster_config_base[provider], {}), setting, null) != null ? var.cloud_cluster_config_base[provider][setting] : base_value if !can(keys(base_value))
+      }
+    )
   }
 
   # Ensure complex types are specified
-  cluster_configuration_complex = { for provider, default_settings in local.cluster_configuration_defaults :
+  cloud_cluster_config_nodes = { for provider, default_settings in local.cloud_cluster_config_base :
     provider => {
-      nodes = try(length(var.cluster_configuration_base[provider].nodes), 0) > 0 ? var.cluster_configuration_base[provider].nodes : default_settings.nodes
+      nodes = try(length(var.cloud_cluster_config_base[provider].nodes), 0) > 0 ? var.cloud_cluster_config_base[provider].nodes : default_settings.nodes
     }
   }
 }

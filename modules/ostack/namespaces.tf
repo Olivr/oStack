@@ -37,7 +37,7 @@ locals {
       name             = lookup(namespace, "name", null) != null && lookup(namespace, "name", "") != "" ? namespace.name : lower(trim(replace(replace("${var.prefix}${namespace.title}", "/[\\s_\\.]/", "-"), "/[^a-zA-Z0-9-]/", ""), "-"))
       description      = lookup(namespace, "description", null) != null && lookup(namespace, "description", "") != "" ? namespace.description : format(local.i18n.ns_description, namespace.title)
       environments     = lookup(namespace, "environments", null) != null ? namespace.environments : keys(local.environments)
-      tenant_isolation = lookup(namespace, "tenant_isolation", null) != null ? namespace.tenant_isolation : local.gitops_configuration[var.gitops_default_provider].tenant_isolation
+      tenant_isolation = lookup(namespace, "tenant_isolation", null) != null ? namespace.tenant_isolation : local.gitops_config[var.gitops_default_provider].tenant_isolation
       repos            = try(length(namespace.repos) > 0 ? namespace.repos : tomap(false), {})
     }
   }
@@ -45,6 +45,7 @@ locals {
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Computations
+# These variables are referenced in this file only
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
   # Prepare repos
@@ -92,7 +93,7 @@ locals {
   # Backends to create: Ensure simple types are specified
   namespaces_repos_backend_simple = { for id, backend in local.namespaces_repos_backend_provider :
     id => merge(backend,
-      { for setting, default_value in local.backend_configuration[backend.provider] :
+      { for setting, default_value in local.backend_config[backend.provider] :
         setting => lookup(backend, setting, null) != null ? backend[setting] : default_value
       }
     )
@@ -102,9 +103,9 @@ locals {
   namespaces_repos_backend_complex = { for id, backend in local.namespaces_repos_backend_simple :
     id => merge(backend,
       {
-        env_vars    = merge(local.backend_configuration[backend.provider].env_vars, backend.env_vars)
-        tf_vars     = merge(local.backend_configuration[backend.provider].tf_vars, backend.tf_vars)
-        tf_vars_hcl = merge(local.backend_configuration[backend.provider].tf_vars_hcl, backend.tf_vars_hcl)
+        env_vars    = merge(local.backend_config[backend.provider].env_vars, backend.env_vars)
+        tf_vars     = merge(local.backend_config[backend.provider].tf_vars, backend.tf_vars)
+        tf_vars_hcl = merge(local.backend_config[backend.provider].tf_vars_hcl, backend.tf_vars_hcl)
       }
     )
   }
@@ -151,7 +152,7 @@ locals {
   # VCS repos to create: Ensure simple types are specified
   namespaces_repos_vcs_simple = { for id, vcs in local.namespaces_repos_vcs_provider :
     id => merge(vcs,
-      { for setting, default_value in local.vcs_configuration[vcs.provider] :
+      { for setting, default_value in local.vcs_config[vcs.provider] :
         setting => lookup(vcs, setting, null) != null ? vcs[setting] : default_value if !contains(["tags", "repo_template"], setting)
       }
     )
@@ -160,12 +161,12 @@ locals {
   # VCS repos to create: Ensure complex types are specified
   namespaces_repos_vcs_complex = { for id, vcs in local.namespaces_repos_vcs_simple :
     id => merge(vcs, {
-      full_name     = "${local.vcs_organization_name}/${vcs._repo.name}"
-      http_url      = format(local.vcs_provider_configuration[vcs.provider].http_format, vcs._repo.name)
-      ssh_url       = format(local.vcs_provider_configuration[vcs.provider].ssh_format, vcs._repo.name)
-      repo_template = lookup(vcs, "repo_template", null) != null ? vcs.repo_template : try(local.vcs_provider_configuration[vcs.provider].repo_templates[vcs._repo.type], null)
+      repo_full_name = "${local.vcs_organization_name}/${vcs._repo.name}"
+      repo_http_url  = format(local.vcs_provider_config[vcs.provider].http_format, vcs._repo.name)
+      repo_ssh_url   = format(local.vcs_provider_config[vcs.provider].ssh_format, vcs._repo.name)
+      repo_template  = lookup(vcs, "repo_template", null) != null ? vcs.repo_template : try(local.vcs_provider_config[vcs.provider].repo_templates[vcs._repo.type], null)
 
-      file_templates = { for name, default_content in local.vcs_configuration[vcs.provider].file_templates :
+      file_templates = { for name, default_content in local.vcs_config[vcs.provider].file_templates :
         name => lookup(vcs.file_templates, name, null) != null ? vcs.file_templates[name] : default_content
       }
 
@@ -174,7 +175,7 @@ locals {
       }
 
       tags = lookup(vcs, "tags", null) != null ? vcs.tags : setunion(
-        local.vcs_configuration[vcs.provider].tags,
+        local.vcs_config[vcs.provider].tags,
         [for env in vcs._repo._namespace.environments : local.environments[env].name],
         [
           vcs._repo._namespace.title,
@@ -188,7 +189,7 @@ locals {
   # VCS repos to create: Specify apps-specific values
   namespaces_repos_vcs_apps = { for id, vcs in local.namespaces_repos_vcs_complex :
     id => {
-      team_configuration = {
+      team_config = {
         admin    = ["global_admin"]
         maintain = ["global_manager", "${vcs._repo._namespace.id}_manager", "global_apps_lead", "${vcs._repo._namespace.id}_apps_lead"]
         read     = ["global", vcs._repo._namespace.id]
@@ -204,9 +205,9 @@ locals {
   namespaces_repos_vcs_infra = { for id, vcs in local.namespaces_repos_vcs_complex :
     id => {
       branch_status_checks = setunion(vcs.branch_status_checks, [for backend in local.namespaces_repos_backend_env[id] :
-        format(local.backend_provider_configuration[backend.provider].status_check_format, backend.name)
+        format(local.backend_provider_config[backend.provider].status_check_format, backend.name)
       ])
-      team_configuration = {
+      team_config = {
         admin    = ["global_admin"]
         maintain = ["global_manager", "${vcs._repo._namespace.id}_manager", "global_infra_lead", "${vcs._repo._namespace.id}_infra_lead"]
         read     = ["global", vcs._repo._namespace.id]
@@ -221,7 +222,7 @@ locals {
   # VCS repos to create: Specify ops-specific values
   namespaces_repos_vcs_ops = { for id, vcs in local.namespaces_repos_vcs_complex :
     id => {
-      team_configuration = {
+      team_config = {
         admin    = ["global_admin"]
         maintain = ["global_manager", "${vcs._repo._namespace.id}_manager"]
         read     = ["global", vcs._repo._namespace.id]
@@ -282,7 +283,7 @@ locals {
 
   # Files generated by GitOps module
   namespaces_repos_files_gitops = { for id, repo in local.namespaces_repos :
-    id => local.gitops.ns_files[repo._namespace.id][repo.id] if repo.type == "ops"
+    id => local.gitops.tenants_files[repo._namespace.id][repo.id] if repo.type == "ops"
   }
 
   # Raw files per repo
@@ -316,7 +317,7 @@ locals {
   namespaces_repos_files_strict_prepare = { for id, repo in local.namespaces_repos :
     id => merge(
       local.namespaces_repos_files_codeowners[id],
-      repo.type == "ops" ? local.gitops.ns_files_strict[repo._namespace.id][repo.id] : {},
+      repo.type == "ops" ? local.gitops.tenants_system_files[repo._namespace.id][repo.id] : {},
       lookup(local.dev, "all_files_strict", false) ? lookup(local.namespaces_repos_files_gitops, id, null) : null,
       lookup(local.dev, "all_files_strict", false) ? repo.vcs.files : null,
       repo.vcs.files_strict,
