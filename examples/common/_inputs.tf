@@ -43,7 +43,7 @@ variable "vcs_write_token" {
   description = <<-DESC
     VCS token with write access, per VCS provider.
     Used for updating commit statuses in GitOps and is also added as a secret to each repo for automerge.
-    This behaviour can be overriden in `repo_secrets` in `vcs_configuration_base` or per repo in `namespaces`.
+    This behaviour can be overriden in `repo_secrets` in `vcs_config_base` or per repo in `namespaces`.
     DESC
   type        = map(string)
   sensitive   = true

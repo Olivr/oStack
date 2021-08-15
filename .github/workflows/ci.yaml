@@ -99,16 +99,16 @@ jobs:
         test_case: ${{fromJSON(needs.matrix.outputs.examples)}}
       fail-fast: false
     env:
-      TF_VAR_organization_name: olivr-test
+      TF_VAR_organization_name: ${{ secrets.CI_GITHUB_OWNER }}
       TF_VAR_cloud_default_provider: linode
-      TF_VAR_tfe_oauth_token_id: ${{ secrets.TFE_OAUTH_TOKEN_ID }}
-      TF_VAR_vcs_write_token: '{ github="${{ secrets.COPYBARA_TOKEN }}" }'
+      TF_VAR_tfe_oauth_token_id: ${{ secrets.CI_TFE_OAUTH_TOKEN_ID }}
+      TF_VAR_vcs_write_token: '{ github="${{ secrets.CI_GITHUB_TOKEN }}" }'
       TF_VAR_sensitive_inputs: '{ my_other_secret = "This is marked as sensitive" }'
-      GITHUB_TOKEN: ${{ secrets.COPYBARA_TOKEN }}
-      GITHUB_OWNER: olivr-test
-      LINODE_TOKEN: ${{ secrets.LINODE_TOKEN }}
-      DIGITALOCEAN_TOKEN: ${{ secrets.DIGITALOCEAN_TOKEN }}
-      TFE_TOKEN: ${{ secrets.TFE_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.CI_GITHUB_TOKEN }}
+      GITHUB_OWNER: ${{ secrets.CI_GITHUB_OWNER }}
+      LINODE_TOKEN: ${{ secrets.CI_LINODE_TOKEN }}
+      DIGITALOCEAN_TOKEN: ${{ secrets.CI_DIGITALOCEAN_TOKEN }}
+      TFE_TOKEN: ${{ secrets.CI_TFE_TOKEN }}
 
     steps:
       - name: Checkout repo
@@ -118,7 +118,8 @@ jobs:
         uses: hashicorp/setup-terraform@v1
 
       - name: Prepare test case
-        run: TEST_NAME=$(sed -E 's`[^a-z0-9]`-`g' <<< "${{ matrix.test_case }}"); cp -a examples/common/. . && cat "examples/${{ matrix.test_case }}.tf" | sed 's`Olivr/oStack/oStack`./modules/ostack`g' | sed 's`version\s*=\s*".*$`prefix = "'"$TEST_NAME"'-"`' | sed 's`repo_archive_on_destroy\s*=.*$`repo_archive_on_destroy = false\nrepo_private = false`' > main.tf
+        run: TEST_NAME=$(sed -E 's`[^a-z0-9]`-`g' <<< "${{ matrix.test_case }}"); cp -a examples/common/. . && cat "examples/${{ matrix.test_case }}.tf" | sed 's`Olivr/oStack/oStack`./modules/ostack`g' | sed 's`version\s*=\s*".*$`prefix = "'"${TEST_NAME:0:9}"'-"`' | sed 's`repo_archive_on_destroy\s*=.*$`repo_archive_on_destroy = false\nrepo_private = false`' > main.tf
+      - run: cat main.tf
 
       - name: Initialize Terraform
         run: terraform init
@@ -149,17 +150,10 @@ jobs:
         run: terraform apply -auto-approve tf.plan
 
       - name: Destroy Terraform
+        if: always()
         run: terraform destroy -auto-approve
       # - name: Run tests
       #   run: terraform test
-      #   env:
-      #     TF_VAR_organization_name: olivr-test
-      #     TF_VAR_globalinfra_vcs_repo_name: null
-      #     TF_VAR_tfe_oauth_token_id: ${{ secrets.TFE_OAUTH_TOKEN_ID }}
-      #     TF_VAR_vcs_token_write: ${{ secrets.COPYBARA_TOKEN }}
-      #     GITHUB_TOKEN: ${{ secrets.COPYBARA_TOKEN }}
-      #     LINODE_TOKEN: ${{ secrets.LINODE_TOKEN }}
-      #     TFE_TOKEN: ${{ secrets.TFE_TOKEN }}
 
   finalizer:
     name: Passed all CI tests
