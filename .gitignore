@@ -13,7 +13,8 @@ yarn-error.log*
 
 # dotenv environment variables file
 .env
-.env.test
+.env.*
+.envrc
 .secrets
 
 # Local .terraform directories
@@ -55,6 +56,7 @@ override.tf.json
 # Ignore CLI configuration files
 .terraformrc
 terraform.rc
+Brewfile.lock.json
 
 # OS metadata
 .DS_Store
