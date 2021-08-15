@@ -1,0 +1,20 @@
+tap "fluxcd/tap"
+
+brew "checkov"
+brew "direnv"
+brew "fluxcd/tap/flux"
+brew "gh"
+brew "gnupg"
+brew "helm"
+brew "jq"
+brew "kind"
+brew "kubernetes-cli"
+brew "sops"
+brew "terraform"
+brew "terraform-docs"
+brew "tflint"
+brew "tfsec"
+brew "yarn"
+
+# Kubernetes IDE
+# cask "lens"
