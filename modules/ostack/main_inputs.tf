@@ -75,6 +75,11 @@ variable "prefix" {
     error_message = "Prefix must only contain alphanumeric characters. It may contain '-' but cannot start with it."
     condition     = var.prefix == "" || can(regex("^([a-zA-Z0-9][a-zA-Z0-9-]*)*$", var.prefix))
   }
+
+  validation {
+    error_message = "Please choose a prefix with 10 characters or less."
+    condition     = length(var.prefix) <= 10
+  }
 }
 
 variable "tags" {
