@@ -90,7 +90,7 @@ jobs:
       #   run: docker run -v "$(pwd):/src" bridgecrew/checkov -d /src/${{ env.path }} --config-file /src/.config/.checkov.yaml --compact
 
   e2e:
-    name: End-to-end test oStack
+    name: e2e test ${{ matrix.test_case }}
     if: github.event_name == 'push' || (github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]')
     needs: [matrix, unit]
     runs-on: ubuntu-latest
@@ -118,8 +118,7 @@ jobs:
         uses: hashicorp/setup-terraform@v1
 
       - name: Prepare test case
-        run: TEST_NAME=$(sed -E 's`[^a-z0-9]`-`g' <<< "${{ matrix.test_case }}"); cp -a examples/common/. . && cat "examples/${{ matrix.test_case }}.tf" | sed 's`Olivr/oStack/oStack`./modules/ostack`g' | sed 's`version\s*=\s*".*$`prefix = "'"${TEST_NAME:0:9}"'-"`' | sed 's`repo_archive_on_destroy\s*=.*$`repo_archive_on_destroy = false\nrepo_private = false`' > main.tf
-      - run: cat main.tf
+        run: TEST_NAME=$(sed -E 's`[^a-z0-9]``g' <<< "${{ matrix.test_case }}"); cp -a examples/common/. . && cat "examples/${{ matrix.test_case }}.tf" | sed 's`Olivr/oStack/oStack`./modules/ostack`g' | sed 's`version\s*=\s*".*$`dev_mode = {}\n prefix = "'"${TEST_NAME:0:9}"'-"`' | sed 's`repo_archive_on_destroy\s*=.*$`repo_archive_on_destroy = false\nrepo_private = false`' > main.tf
 
       - name: Initialize Terraform
         run: terraform init
