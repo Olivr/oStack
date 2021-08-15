@@ -2,19 +2,18 @@
 # Required inputs
 # These parameters must be specified.
 # ---------------------------------------------------------------------------------------------------------------------
-variable "namespaces" {
-  description = "Namespaces to be used as isolated tenants."
+variable "tenants" {
+  description = "Tenants and their repos."
   type = map(object({
-    name             = string
-    environments     = set(string)
-    tenant_isolation = bool
+    name         = string
+    environments = set(string)
     repos = map(object({
       name = string
       type = string
       vcs = object({
         provider            = string
-        http_url            = string
-        ssh_url             = string
+        repo_http_url       = string
+        repo_ssh_url        = string
         branch_default_name = string
       })
     }))
@@ -22,7 +21,7 @@ variable "namespaces" {
 }
 
 variable "environments" {
-  description = "Clusters per environments."
+  description = "Environments and their clusters."
   type = map(object({
     name = string
     clusters = map(object({
@@ -34,34 +33,68 @@ variable "environments" {
   }))
 }
 
-variable "global" {
-  description = "Global ops repo configuration."
-  type = object({
-    vcs = object({
-      provider            = string
-      http_url            = string
-      ssh_url             = string
-      branch_default_name = string
-    })
-    backends = map(object({
-      vcs_working_directory = string
-      _env_name             = string
-      _cluster_name         = string
-    }))
-  })
+variable "repo_ssh_url" {
+  description = "SSH URL for cloning the repository."
+  type        = string
+  validation {
+    condition     = var.repo_ssh_url != null
+    error_message = "You must specify the SSH url for cloning the repository."
+  }
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Optional inputs
 # These parameters have reasonable defaults.
 # ---------------------------------------------------------------------------------------------------------------------
+variable "branch_name" {
+  description = "Main repository branch name."
+  type        = string
+  default     = "main"
+  validation {
+    condition     = var.branch_name != null
+    error_message = "You must specify the main repository branch name."
+  }
+}
+
+variable "commit_status_provider" {
+  description = "Name of the VCS provider (used to define if Flux can send commit statuses)."
+  type        = string
+  default     = null
+}
+
+variable "commit_status_http_url" {
+  description = "HTTP URL of the repository."
+  type        = string
+  default     = null
+}
+
+variable "system_dir" {
+  description = "Name of the system directory."
+  type        = string
+  default     = "_ostack"
+  validation {
+    condition     = var.system_dir != null
+    error_message = "You must specify the name of the system directory."
+  }
+}
+
 variable "base_dir" {
-  description = "Name of the base directory."
+  description = "Name of the base directory where contributors must place their base files."
   type        = string
   default     = "_base"
   validation {
     condition     = var.base_dir != null
     error_message = "You must specify the name of the base directory."
+  }
+}
+
+variable "overlay_dir" {
+  description = "Name of the overlay directory where contributors must place their overlay files."
+  type        = string
+  default     = "_overlays"
+  validation {
+    condition     = var.overlay_dir != null
+    error_message = "You must specify the name of the overlay directory."
   }
 }
 
