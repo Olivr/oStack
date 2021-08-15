@@ -61,7 +61,7 @@ locals {
         ) if can(keys(base_value)) # can(keys(base_value)) returns true if base_value is a map
       },
       # For all other types (inc. set), overwrite by user-defined value
-      { for setting, base_value in local.backend_config[var.backend_default_provider] :
+      { for setting, base_value in local.vcs_config[provider] :
         setting => lookup(local.globalconfig_vcs_base, setting, null) != null ? local.globalconfig_vcs_base[setting] : base_value if !can(keys(base_value))
       }
     )
@@ -85,7 +85,7 @@ locals {
   globalconfig_vcs_files_strict_workflows = { for provider in local.globalconfig_vcs_providers :
     provider => { for k, v in merge({
       "${local.vcs_provider_config[provider].workflow_dir}/sync-${local.globalops.name}.yaml" = local.globalops.vcs.provider == provider && local.globalops.vcs.branch_protection ? templatefile("${path.module}/templates/${provider}/sync.yaml.tpl", {
-        config_branch = local.globalconfig_vcs_defaults[provider].branch_default_name
+        config_branch = try(local.globalconfig_vcs_defaults[provider].branch_default_name, "")
         repo_branch   = local.globalops.vcs.branch_default_name
         repo_name     = local.globalops.name
         automerge     = local.globalops.continuous_delivery
@@ -94,7 +94,7 @@ locals {
       merge([for id, repo in local.namespaces_repos :
         {
           "${local.vcs_provider_config[provider].workflow_dir}/sync-${repo.name}.yaml" = templatefile("${path.module}/templates/${provider}/sync.yaml.tpl", {
-            config_branch = local.globalconfig_vcs_defaults[provider].branch_default_name
+            config_branch = try(local.globalconfig_vcs_defaults[provider].branch_default_name, "")
             repo_branch   = repo.vcs.branch_default_name
             repo_name     = repo.name
             automerge     = repo.continuous_delivery
