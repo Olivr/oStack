@@ -9,10 +9,14 @@ resource "tfe_workspace" "workspace" {
   auto_apply        = var.workspace_auto_apply
   working_directory = var.vcs_working_directory
   trigger_prefixes  = var.vcs_trigger_paths
-  vcs_repo {
-    identifier     = var.vcs_repo_path
-    branch         = var.vcs_branch_name
-    oauth_token_id = var.tfe_oauth_token_id
+
+  dynamic "vcs_repo" {
+    for_each = var.vcs_repo_path == null || var.vcs_branch_name == null || var.tfe_oauth_token_id == null ? [] : [1]
+    content {
+      identifier     = var.vcs_repo_path
+      branch         = var.vcs_branch_name
+      oauth_token_id = var.tfe_oauth_token_id
+    }
   }
 }
 
