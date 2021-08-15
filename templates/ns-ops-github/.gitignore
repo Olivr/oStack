@@ -2,6 +2,11 @@
 .DS_Store
 Thumbs.db
 
+# dotenv environment variables file
+.env
+.env.test
+.secrets
+
 # Binaries for programs and plugins
 *.exe
 *.exe~
