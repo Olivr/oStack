@@ -1,37 +1,27 @@
 # ---------------------------------------------------------------------------------------------------------------------
-# Main variables
+# Exported variables
+# These variables are used in other files
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
-  ns_files = { for ns_id, namespace in var.namespaces :
+  tenants_files = { for ns_id, namespace in var.tenants :
     ns_id => { for repo_id, repo in namespace.repos :
-      repo_id => merge(
-        {
-          # "${var.base_dir}/kustomization.yaml" = templatefile("${local.partial}/kustomization.yaml.tpl", {
-          #   paths = ["delete-me.yaml"]
-          # })
-          # "${var.base_dir}/delete-me.yaml" = templatefile("${path.module}/templates/namespace/delete-me.yaml.tpl", {
-          #   namespace = namespace.name
-          #   repo      = repo.name
-          # })
-        },
-        { for env in namespace.environments :
-          "${var.environments[env].name}/kustomization.yaml" => <<-EOF
+      repo_id => { for env in namespace.environments :
+        "${var.environments[env].name}/kustomization.yaml" => <<-EOF
             apiVersion: kustomize.config.k8s.io/v1beta1
             kind: Kustomization
             namespace: ${namespace.name}
             resources:
-              - "../_base"
+              - "../${local.base_dir}"
             EOF
-        }
-      ) if repo.type == "ops"
+      } if repo.type == "ops"
     }
   }
 
-  ns_files_strict = { for ns_id, namespace in var.namespaces :
+  tenants_system_files = { for ns_id, namespace in var.tenants :
     ns_id => { for repo_id, repo in namespace.repos :
       repo_id => merge(
         {
-          ".sops.yaml" = templatefile("${local.partial}/ns_sops.yaml.tpl", {
+          ".sops.yaml" = templatefile("${local.partial}/tenant_sops.yaml.tpl", {
             environments     = local.ns_environments[ns_id]
             fingerprints_env = local.ns_fingerprints_env[ns_id]
             fingerprints_all = flatten(values(local.ns_fingerprints_env[ns_id]))
@@ -49,9 +39,10 @@ locals {
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Computations
+# These variables are referenced in this file only
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
-  ns_environments = { for ns_id, namespace in var.namespaces :
+  ns_environments = { for ns_id, namespace in var.tenants :
     ns_id => { for env_id, env in namespace.environments :
       env_id => var.environments[env_id]
     }

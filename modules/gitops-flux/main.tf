@@ -1,5 +1,6 @@
 # ---------------------------------------------------------------------------------------------------------------------
 # Computations
+# These variables are referenced in this file only
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
   # Partials directory path
@@ -8,6 +9,8 @@ locals {
   # Remove begining and trailing '/' from directory names
   base_dir    = trim(var.base_dir, "/")
   infra_dir   = trim(var.infra_dir, "/")
+  overlay_dir = trim(var.overlay_dir, "/")
+  system_dir  = trim(var.system_dir, "/")
   tenants_dir = trim(var.tenants_dir, "/")
 
   # Normalize cluster_init_path if it was provided
@@ -16,7 +19,7 @@ locals {
   , "/")
 
   # Index tenants by name instead of ID
-  tenants = { for namespace in values(var.namespaces) :
+  tenants = { for namespace in values(var.tenants) :
     (namespace.name) => namespace if anytrue([for repo in namespace.repos : repo.type == "ops"])
   }
 
@@ -28,6 +31,7 @@ locals {
   }
 
   # Only GitHub has been tested (Flux supports more though https://fluxcd.io/docs/components/notification/provider/#git-commit-status)
+  # Please do not hesitate to try the other ones and send a PR
   # commit_status_notifications = ["github", "gitlab", "bitbucket", "azuredevops"]
   commit_status_providers = ["github"]
 
