@@ -1,5 +1,6 @@
 # ---------------------------------------------------------------------------------------------------------------------
 # Computations
+# These variables are referenced in this file only
 # ---------------------------------------------------------------------------------------------------------------------
 # GitHub does not like empty files, so make sure no file is empty
 locals {
@@ -20,7 +21,8 @@ locals {
 # Resources
 # ---------------------------------------------------------------------------------------------------------------------
 resource "github_repository_file" "dotfiles_strict" {
-  for_each = local.dotfiles_strict
+  for_each   = local.dotfiles_strict
+  depends_on = [github_branch_protection.default]
 
   repository          = local.repo.name
   branch              = local.repo.default_branch
@@ -30,7 +32,8 @@ resource "github_repository_file" "dotfiles_strict" {
 }
 
 resource "github_repository_file" "dotfiles" {
-  for_each = local.dotfiles
+  for_each   = local.dotfiles
+  depends_on = [github_branch_protection.default]
 
   repository          = local.repo.name
   branch              = local.repo.default_branch
@@ -59,7 +62,8 @@ resource "github_repository_file" "files_strict" {
 
 resource "github_repository_file" "files" {
   for_each = local.files
-  depends_on = [github_actions_secret.secret,
+  depends_on = [
+    github_actions_secret.secret,
     github_repository_file.dotfiles
   ]
 

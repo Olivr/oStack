@@ -25,7 +25,7 @@ variable "backend_default_provider" {
   }
 }
 
-variable "backend_configuration_base" {
+variable "backend_config_base" {
   description = "Base backend configuration per provider."
   default     = { tfe = {} }
   type = map(object({
@@ -39,26 +39,26 @@ variable "backend_configuration_base" {
   }))
 
   validation {
-    error_message = "Variable backend_configuration_base cannot be null."
-    condition     = var.backend_configuration_base != null
+    error_message = "Variable backend_config_base cannot be null."
+    condition     = var.backend_config_base != null
   }
 
   validation {
     error_message = "You must specify only supported backend providers."
-    condition = alltrue([for provider in keys(var.backend_configuration_base) :
+    condition = alltrue([for provider in keys(var.backend_config_base) :
       contains(["tfe"], provider)
     ])
   }
 
   validation {
     error_message = "You must specify tfe_oauth_token_id (VCS OAuth connection ID https://www.terraform.io/docs/cloud/vcs/index.html)."
-    condition     = contains(keys(var.backend_configuration_base), "tfe") ? lookup(var.backend_configuration_base.tfe, "tfe_oauth_token_id", null) != null : true
+    condition     = contains(keys(var.backend_config_base), "tfe") ? lookup(var.backend_config_base.tfe, "tfe_oauth_token_id", null) != null : true
   }
 
   validation {
     error_message = "Null values are not accepted for env_vars, tfvars, tf_vars_hcl. Use empty values instead."
     condition = alltrue(flatten(
-      [for config in values(var.backend_configuration_base) :
+      [for config in values(var.backend_config_base) :
         concat(
           [for v in try(values(config.env_vars), {}) : v != null],
           [for v in try(values(config.tf_vars), {}) : v != null],

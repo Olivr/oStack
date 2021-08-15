@@ -22,7 +22,7 @@ variable "cloud_default_provider" {
 # OPTIONAL INPUTS
 # These parameters have reasonable defaults.
 # ---------------------------------------------------------------------------------------------------------------------
-variable "cluster_configuration_base" {
+variable "cloud_cluster_config_base" {
   description = "Base cluster configuration per cloud provider."
   default     = {}
   type = map(object({
@@ -34,13 +34,13 @@ variable "cluster_configuration_base" {
   }))
 
   validation {
-    error_message = "Variable cluster_configuration_base cannot be null."
-    condition     = var.cluster_configuration_base != null
+    error_message = "Variable cloud_cluster_config_base cannot be null."
+    condition     = var.cloud_cluster_config_base != null
   }
 
   validation {
     error_message = "You must specify only supported cloud providers."
-    condition = alltrue([for provider in keys(var.cluster_configuration_base) :
+    condition = alltrue([for provider in keys(var.cloud_cluster_config_base) :
       contains(["linode", "digitalocean"], provider)
     ])
   }

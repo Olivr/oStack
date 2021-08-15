@@ -1,5 +1,6 @@
 # ---------------------------------------------------------------------------------------------------------------------
-# Main variables
+# Exported variables
+# These variables are used in other files
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
   # Environments
@@ -45,6 +46,7 @@ locals {
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Computations
+# These variables are referenced in this file only
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
   # Prepare clusters
@@ -93,7 +95,7 @@ locals {
 
   # Clusters to create: Ensure simple types are specified
   environments_clusters_create_simple = { for id, cluster in local.environments_clusters_create_providers :
-    id => merge(cluster, { for setting, default_value in local.cluster_configuration[cluster.provider] :
+    id => merge(cluster, { for setting, default_value in local.cloud_cluster_config[cluster.provider] :
       setting => lookup(cluster, setting, null) != null ? cluster[setting] : default_value if !contains(["nodes", "tags"], setting)
     })
   }
@@ -101,8 +103,8 @@ locals {
   # Clusters to create: Ensure complex types are specified
   environments_clusters_create_complex = { for id, cluster in local.environments_clusters_create_providers :
     id => {
-      nodes = lookup(cluster, "nodes", null) != null && try(length(lookup(cluster, "nodes", {})) > 0, false) ? cluster.nodes : local.cluster_configuration[cluster.provider].nodes
-      tags  = lookup(cluster, "tags", null) != null ? cluster.tags : setunion(local.cluster_configuration[cluster.provider].tags, [cluster._env.name])
+      nodes = lookup(cluster, "nodes", null) != null && try(length(lookup(cluster, "nodes", {})) > 0, false) ? cluster.nodes : local.cloud_cluster_config[cluster.provider].nodes
+      tags  = lookup(cluster, "tags", null) != null ? cluster.tags : setunion(local.cloud_cluster_config[cluster.provider].tags, [cluster._env.name])
     }
   }
 

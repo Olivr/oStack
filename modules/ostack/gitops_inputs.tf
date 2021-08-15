@@ -19,7 +19,7 @@ variable "gitops_default_provider" {
   }
 }
 
-variable "gitops_configuration_base" {
+variable "gitops_config_base" {
   description = "Base GitOps configuration per provider."
   default     = { flux = {} }
   type = map(object({
@@ -31,13 +31,13 @@ variable "gitops_configuration_base" {
   }))
 
   validation {
-    error_message = "Variable gitops_configuration_base cannot be null."
-    condition     = var.gitops_configuration_base != null
+    error_message = "Variable gitops_config_base cannot be null."
+    condition     = var.gitops_config_base != null
   }
 
   validation {
     error_message = "You must specify only supported GitOps providers."
-    condition = alltrue([for provider in keys(var.gitops_configuration_base) :
+    condition = alltrue([for provider in keys(var.gitops_config_base) :
       contains(["flux"], provider)
     ])
   }

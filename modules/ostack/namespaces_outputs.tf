@@ -18,6 +18,7 @@ output "namespaces_files_strict" {
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Computations
+# These variables are referenced in this file only
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
   namespaces_outputs_prepare = { for namespace_id, namespace in local.namespaces :
