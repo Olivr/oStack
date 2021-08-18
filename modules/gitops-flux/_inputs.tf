@@ -37,7 +37,7 @@ variable "repo_ssh_url" {
   description = "SSH URL for cloning the repository."
   type        = string
   validation {
-    condition     = var.repo_ssh_url != null
+    condition     = var.repo_ssh_url != null && var.repo_ssh_url != ""
     error_message = "You must specify the SSH url for cloning the repository."
   }
 }
