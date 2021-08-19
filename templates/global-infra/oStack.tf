@@ -1,8 +1,9 @@
 # This template contains the most common options for getting started with oStack
 
 module "ostack" {
-  source  = "Olivr/oStack/oStack"
-  version = "~> 1.0.0"
+  source = "../../modules/ostack"
+  #source  = "Olivr/oStack/oStack"
+  #version = "~> 1.0.0"
 
   # ---------------------------------------------------------------------------------------------------------------------
   # General configuration

@@ -8,7 +8,7 @@ module "backends_namespaces_tfe" {
   depends_on = [local.vcs_repos_namespaces] # Needs the repo to be created for connecting the backend to it
 
   sensitive_inputs       = each.value.sensitive_inputs
-  tfe_oauth_token_id     = each.value.tfe_oauth_token_id
+  tfe_oauth_token_id     = sensitive(each.value.tfe_oauth_token_id) # Not really sensitive but TFE marked it as such
   vcs_branch_name        = local.namespaces_repos[each.value.repo_id].vcs.branch_default_name
   vcs_repo_path          = local.namespaces_repos[each.value.repo_id].vcs.repo_full_name
   vcs_working_directory  = each.value.vcs_working_directory
@@ -30,7 +30,7 @@ module "backends_globalops_tfe" {
   depends_on = [local.vcs_repo_globalops] # Needs the repo to be created for connecting the backend to it
 
   sensitive_inputs       = local.globalops.backends[each.key].sensitive_inputs
-  tfe_oauth_token_id     = local.globalops.backends[each.key].tfe_oauth_token_id
+  tfe_oauth_token_id     = sensitive(local.globalops.backends[each.key].tfe_oauth_token_id) # Not really sensitive but TFE marked it as such
   vcs_branch_name        = local.globalops.vcs.branch_default_name
   vcs_repo_path          = local.globalops.vcs.repo_full_name
   vcs_working_directory  = local.globalops.backends[each.key].vcs_working_directory

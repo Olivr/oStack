@@ -1,0 +1,4 @@
+{
+  // You might need to add this to your user/workspace settings
+  "shellcheck.customArgs": ["-x"]
+}

@@ -42,6 +42,11 @@ variable "repo_ssh_url" {
   }
 }
 
+variable "commit_status_http_url" {
+  description = "HTTP URL of the repository."
+  type        = string
+}
+
 # ---------------------------------------------------------------------------------------------------------------------
 # Optional inputs
 # These parameters have reasonable defaults.
@@ -59,13 +64,7 @@ variable "branch_name" {
 variable "commit_status_provider" {
   description = "Name of the VCS provider (used to define if Flux can send commit statuses)."
   type        = string
-  default     = null
-}
-
-variable "commit_status_http_url" {
-  description = "HTTP URL of the repository."
-  type        = string
-  default     = null
+  default     = "github"
 }
 
 variable "system_dir" {

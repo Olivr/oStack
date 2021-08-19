@@ -21,22 +21,24 @@
     }
   },
   "lint-staged": {
-    "modules/**": "./.config/tfdocs.sh",
-    "**/*.json": "prettier --config .prettierrc.json --write --ignore-unknown --parser json",
-    "**/*.(yaml|yml)": "prettier --config .prettierrc.json --write --ignore-unknown --parser yaml",
-    "**/*.md": "prettier --config .prettierrc.json --write --ignore-unknown --parser markdown",
-    "**/*.tf": "./.config/tflinter.sh"
+    "modules/**": "tools/bulk.sh pre-commit modules --add-to-commit",
+    "templates/**": "tools/bulk.sh pre-commit templates",
+    "**/*.json": "prettier --write --ignore-unknown --parser json",
+    "**/*.(yaml|yml)": "prettier --write --ignore-unknown --parser yaml",
+    "**/*.md": "prettier --config --write --ignore-unknown --parser markdown",
+    "**/*.tf": "terraform fmt -write"
   },
   "scripts": {
-    "format": "terraform fmt -write -recursive",
-    "lint": "tflint --init --config=.config/.tflint.hcl && tflint --config=.config/.tflint.hcl",
-    "brew": "brew install terraform tfsec tflint checkov terraform-docs jq",
+    "brew": "if command -v brew &> /dev/null; then brew bundle; fi",
+    "go": "if command -v go &> /dev/null; then go get gotest.tools/gotestsum; fi",
+    "format": "tools/bulk.sh format modules --parallel",
+    "lint": "yarn lint:modules & yarn lint:templates",
+    "lint:modules": "tools/bulk.sh lint modules --parallel",
+    "lint:templates": "tools/bulk.sh lint templates --parallel",
+    "postinstall": "yarn brew && yarn go",
     "prepare": "husky install .config/husky",
-    "pretty-plan": "terraform -chdir=modules/ostack init && terraform -chdir=modules/ostack plan -out tf.plan && terraform -chdir=modules/ostack show -json tf.plan | jq '.' > modules/ostack/tf.plan.pretty.json && rm -rf modules/ostack/tf.plan",
-    "security": "tfsec modules && tfsec templates && yarn security:plan -d modules/ostack",
-    "security:plan": "yarn pretty-plan && checkov --config-file .config/.checkov.yaml --repo-root-for-plan-enrichment $PWD/modules/ostack -f modules/ostack/tf.plan.pretty.json",
-    "test": "yarn test:static && yarn test:integration",
-    "test:integration": "terraform -chdir=modules/ostack test",
-    "test:static": "yarn format && yarn lint modules/ostack && yarn pretty-plan && yarn security"
+    "test": "tools/bulk.sh test modules --parallel",
+    "test:integration": "tools/bulk.sh test integration modules --parallel",
+    "test:unit": "tools/bulk.sh test unit modules --parallel"
   }
 }

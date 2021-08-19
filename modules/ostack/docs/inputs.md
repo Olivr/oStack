@@ -12,7 +12,7 @@
 
 | Name                                             | Version |
 | ------------------------------------------------ | ------- |
-| <a name="provider_gpg"></a> [gpg](#provider_gpg) | 0.1.0   |
+| <a name="provider_gpg"></a> [gpg](#provider_gpg) | 0.1.1   |
 | <a name="provider_tls"></a> [tls](#provider_tls) | 3.1.0   |
 
 ## Modules
