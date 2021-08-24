@@ -73,11 +73,15 @@ if [[ -z $SKIP_KUBESCORE || -z $SKIP_KUBEAUDIT ]]; then
     # kube-score
     if [[ -z "$SKIP_KUBESCORE" ]]; then
       show INFO "Validating ${file#"$module"} with kube-score"
-      kube-score score "$file"
+      kube-score score "${kubescore_params[@]}" "$file"
       show PASS "Kube-score validation for ${file#"$module"}"
     fi
 
     # kubeaudit
+    if [[ -z $AUTO_FIX ]]; then
+      kubeaudit autofix -f "$file"
+    fi
+
     if [[ -z $SKIP_KUBEAUDIT ]]; then
       show INFO "Validating ${file#"$module"} with kubeaudit"
       kubeaudit "${kubeaudit_params[@]}" -f "$file"
@@ -123,7 +127,7 @@ if [[ -z $SKIP_KUSTOMIZE ]]; then
 
     if [[ -z $SKIP_KUBESCORE ]]; then
       show INFO "Validating with kube-score"
-      kube-score score --ignore-container-cpu-limit --ignore-container-memory-limit "$kustomize_build"
+      kube-score score --ignore-container-cpu-limit --ignore-container-memory-limit "${kubescore_params[@]}" "$kustomize_build"
       show PASS "Kube-score validation"
     fi
 

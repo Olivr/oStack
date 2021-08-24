@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+declare kubescore_params=()
+
+# Config
+kubescore_config=$(find_config .kube-score .kubescore)
+if [[ -n $kubescore_config ]]; then kubescore_params+=($(cat "$kubescore_config")); fi
 
 # Download kubescore
 if [[ -n $FORCE_INSTALL ]] || ! (command -v kube-score &> /dev/null); then
