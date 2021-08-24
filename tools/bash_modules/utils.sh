@@ -14,6 +14,7 @@ fi
 # Module absolute path
 declare module
 module=$(cd "$(dirname "$1")" && pwd)/$(basename "$1")
+module=${module%/}
 
 if [[ ! -d "$module" ]]; then
   echo "Cannot find directory $module"

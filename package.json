@@ -31,7 +31,7 @@
   "scripts": {
     "brew": "if command -v brew &> /dev/null; then brew bundle; fi",
     "go": "if command -v go &> /dev/null; then go get gotest.tools/gotestsum; fi",
-    "format": "tools/bulk.sh format modules --parallel",
+    "format": "tools/bulk.sh format",
     "lint": "yarn lint:modules & yarn lint:templates",
     "lint:modules": "tools/bulk.sh lint modules --parallel",
     "lint:templates": "tools/bulk.sh lint templates --parallel",

@@ -10,6 +10,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 # Use it like ./kube_validate.sh templates/global-ops-github
 #
 # Available options:
+# AUTO_FIX=1                Enable auto-fixing with kube-audit
 # DISABLE_COLORS=1          Disable colors for this script and as much as possible for the called programs
 # FORCE_INSTALL=1           Force installing tools (mainly to ensure they are used in their latest versions)
 # FORCE_VERIFY_DOWNLOAD=1   Force validating signatures for downloads that support it
@@ -78,7 +79,7 @@ if [[ -z $SKIP_KUBESCORE || -z $SKIP_KUBEAUDIT ]]; then
     fi
 
     # kubeaudit
-    if [[ -z $AUTO_FIX ]]; then
+    if [[ -n $AUTO_FIX ]]; then
       kubeaudit autofix -f "$file"
     fi
 
@@ -111,8 +112,7 @@ fi
 rm -f /tmp/kustomize.*.yaml
 
 if [[ -z $SKIP_KUSTOMIZE ]]; then
-  while IFS= read -r -d $'\0' file;
-  do
+  while IFS= read -r -d $'\0' file; do
     printf "\nValidating kustomization %s\n" "${file#"$module"}"
 
     kustomize_build=$(build=$(mktemp /tmp/kustomize.XXX); mv "$build" "$build.yaml"; echo "$build.yaml")
@@ -151,7 +151,7 @@ if [[ -z $SKIP_KUSTOMIZE ]]; then
     fi
 
     rm -f "$kustomize_build"
-  done < <(find "$@" -type f -name kustomization.yaml -print0)
+  done < <(find "$module" -type f -name kustomization.yaml -print0)
 fi
 
 show ""

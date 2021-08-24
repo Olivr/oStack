@@ -35,9 +35,9 @@ function get_dirs() {
   echo "${folders[@]}" | tr ' ' '\n' | sort -u
 }
 
-# Format all modules (quick)
-if [[ $1 == "format" && $2 == "modules" ]]; then
-  terraform fmt -write -recursive modules
+# Format all Terraform files (quick)
+if [[ $1 == "format" ]]; then
+  terraform fmt -write -recursive
 
 # Lint all modules (moderate)
 elif [[ $1 == "lint" && $2 == "modules" ]]; then
@@ -48,7 +48,7 @@ elif [[ $1 == "lint" && $2 == "modules" ]]; then
 elif [[ $1 == "lint" && $2 == "templates" ]]; then
   # Checkov is too slow to be run as linting tool, instead it should be run in CI
   ls -d templates/*-infra*/ | SKIP_TERRAFORM_VALIDATE=1 SKIP_CHECKOV=1 $processor tools/tfvalidate.sh
-  ls -d templates/*-ops*/ | SKIP_CHECKOV=1 $processor tools/kubevalidate.sh
+  ls -d templates/*-ops*/ | AUTO_FIX=1 SKIP_CHECKOV=1 $processor tools/kubevalidate.sh
 
 # Run unit tests on all modules (moderate)
 elif [[ $1 == "test" && $2 == "unit" && $3 == "modules" ]]; then
