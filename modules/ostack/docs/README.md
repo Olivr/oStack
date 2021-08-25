@@ -1,3 +1,7 @@
+# THIS IS A MIRROR
+
+This module's official repo is located here: [https://github.com/Olivr/oStack/](https://github.com/Olivr/oStack/).
+
 <!-- BEGIN_TF_DOCS -->
 
 ## Requirements
