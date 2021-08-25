@@ -80,4 +80,10 @@ elif [[ $1 == "pre-commit" && $2 == "templates" ]]; then
   get_dirs "${@:3}" | grep "templates/.*-infra.*" | SKIP_CHECKOV=1 SKIP_TERRAFORM_VALIDATE=1 $processor tools/tfvalidate.sh
   get_dirs "${@:3}" | grep "templates/.*-ops.*" | SKIP_CHECKOV=1 $processor tools/kubevalidate.sh
 
+# Pre-commit hook for .tf files (quick)
+elif [[ $1 == "pre-commit" && $2 == "tf" ]]; then
+  for file in "${@:3}"; do
+    terraform fmt -write "$file"
+  done
+
 fi
