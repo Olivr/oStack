@@ -12,8 +12,8 @@ module "oStack" {
   # REQUIRED INPUTS
   # These parameters must be specified.
   # ---------------------------------------------------------------------------------------------------------------------
-  organization_name      = var.organization_name
-  cloud_default_provider = var.cloud_default_provider
+  organization_name      = ""
+  cloud_default_provider = ""
   vcs_write_token        = var.vcs_write_token
 
   # ---------------------------------------------------------------------------------------------------------------------
@@ -28,7 +28,7 @@ module "oStack" {
 
       repo_secrets = {
         my_secret       = "I am a secret"
-        my_other_secret = "sensitive::my_other_secret"
+        my_other_secret = "sensitive::my_secret_input"
       }
     }
   }
@@ -39,7 +39,7 @@ module "oStack" {
 
       tf_vars = {
         my_backend_secret       = "I am a secret"
-        my_other_backend_secret = "sensitive::my_other_secret"
+        my_other_backend_secret = "sensitive::my_secret_input"
       }
     }
   }
@@ -47,6 +47,6 @@ module "oStack" {
   sensitive_inputs = var.sensitive_inputs
   # Example values passed to var.sensitive_inputs
   # {
-  #   my_other_secret = "This is marked as sensitive"
+  #   my_secret_input = "This is a sensitive value"
   # }
 }

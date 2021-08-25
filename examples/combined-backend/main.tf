@@ -1,4 +1,4 @@
-# This configuration passes only the required variables in the most minimal configuration oStack can have
+# Configure oStack to create one folder/backend for all environments instead of being separate
 # Do not forget to add the files in ./common to use this configuration as is
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -12,14 +12,9 @@ module "oStack" {
   # REQUIRED INPUTS
   # These parameters must be specified.
   # ---------------------------------------------------------------------------------------------------------------------
-  organization_name      = var.organization_name
-  cloud_default_provider = "linode"
+  organization_name      = ""
+  cloud_default_provider = ""
   vcs_write_token        = var.vcs_write_token
-  backend_config_base = {
-    tfe = {
-      tfe_oauth_token_id = var.tfe_oauth_token_id
-    }
-  }
 
   # ---------------------------------------------------------------------------------------------------------------------
   # OPTIONAL INPUTS
@@ -30,6 +25,13 @@ module "oStack" {
       # Set to false to make it more convenient to experiment with oStack
       # Set back to true or delete this line/block for the long term
       repo_archive_on_destroy = true
+    }
+  }
+
+  backend_config_base = {
+    tfe = {
+      separate_environments = false
+      tfe_oauth_token_id    = var.tfe_oauth_token_id
     }
   }
 }

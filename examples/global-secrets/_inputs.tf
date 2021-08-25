@@ -2,40 +2,12 @@
 # REQUIRED INPUTS
 # These parameters must be specified.
 # ---------------------------------------------------------------------------------------------------------------------
-variable "organization_name" {
-  description = <<-DESC
-    Computer-friendly organization name (eg. my-startup).
-    Use only letters, numbers and dashes to maximize compatibility across every system.
-    DESC
-  type        = string
-
-  validation {
-    error_message = "Organization name must only contain alphanumeric characters. It may contain '-' but cannot start or finish with it."
-    condition     = can(regex("^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?([a-zA-Z0-9]([-a-zA-Z0-9]*[a-zA-Z0-9])?)*$", var.organization_name))
-  }
-}
-
 variable "tfe_oauth_token_id" {
   description = "ID representing the oAuth connection between GitHub and Terraform cloud. It is used by oStack for connecting Terraform Cloud workspaces to GitHub repos."
   type        = string
   validation {
     condition     = var.tfe_oauth_token_id != null && var.tfe_oauth_token_id != ""
     error_message = "You must specify a Terraform Cloud VCS token ID."
-  }
-}
-
-variable "cloud_default_provider" {
-  description = "Default cloud provider."
-  type        = string
-
-  validation {
-    error_message = "Variable cloud_default_provider cannot be null or empty."
-    condition     = var.cloud_default_provider != null && var.cloud_default_provider != ""
-  }
-
-  validation {
-    error_message = "Accepted values are linode, digitalocean."
-    condition     = contains(["linode", "digitalocean"], var.cloud_default_provider)
   }
 }
 

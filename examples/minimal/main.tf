@@ -12,8 +12,8 @@ module "oStack" {
   # REQUIRED INPUTS
   # These parameters must be specified.
   # ---------------------------------------------------------------------------------------------------------------------
-  organization_name      = var.organization_name
-  cloud_default_provider = "digitalocean"
+  organization_name      = ""
+  cloud_default_provider = ""
   vcs_write_token        = var.vcs_write_token
   backend_config_base = {
     tfe = {
