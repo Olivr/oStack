@@ -26,10 +26,10 @@ locals {
   # Defaults for dev mode
   dev_mode = {
     template_globalconfig     = null
-    template_globalops        = "../../templates/global-ops"
-    template_apps             = "../../templates/ns-apps"
-    template_infra            = "../../templates/ns-infra"
-    template_ops              = "../../templates/ns-ops"
+    template_globalops        = "../../templates/global-ops-github"
+    template_apps             = "../../templates/ns-apps-github"
+    template_infra            = "../../templates/ns-infra-github"
+    template_ops              = "../../templates/ns-ops-github"
     module_cluster_init       = "../init-cluster-flux"
     all_files_strict          = true # Any file that is created should be tracked by Terraform
     globalinfra_vcs_repo_name = null # Disables configuring the global-infra repo which is usually not created when developing
