@@ -11,6 +11,10 @@ locals {
     id => repo if repo.type == "ops"
   }
 
+  namespaces_ops = { for id, ns in local.namespaces :
+    id => ns if anytrue([for repo in ns.repos : repo.type == "ops"])
+  }
+
   namespaces_backends_create = merge([for repo_id, repo in local.namespaces_repos :
     { for id, backend in repo.backends :
       "${repo_id}_${id}" => merge(backend, { repo_id = repo_id }) if backend.create == true

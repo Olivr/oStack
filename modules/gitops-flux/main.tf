@@ -20,7 +20,7 @@ locals {
 
   # Index tenants by name instead of ID
   tenants = { for namespace in values(var.tenants) :
-    (namespace.name) => namespace if anytrue([for repo in namespace.repos : repo.type == "ops"])
+    (namespace.name) => namespace
   }
 
   # If a namespace doesn't include certain environments, make sure they are excluded
@@ -29,6 +29,10 @@ locals {
       tenant.name if contains(tenant.environments, id)
     ]
   }
+
+  vcs_providers = distinct(compact(flatten([for tenant in values(local.tenants) :
+    values(tenant.repos)[*].vcs.provider
+  ])))
 
   # Only GitHub has been tested (Flux supports more though https://fluxcd.io/docs/components/notification/provider/#git-commit-status)
   # Please do not hesitate to try the other ones and send a PR

@@ -21,20 +21,24 @@ variable "cluster_path" {
   type        = string
 }
 
-variable "sensitive_inputs" {
-  description = "Values that should be marked as sensitive. Supported by `secrets`, `deploy_keys`."
-  type        = map(string)
+variable "gpg_key_private_sops" {
+  description = "GPG private key for sops."
+  type        = string
   sensitive   = true
-  default     = {}
-  validation {
-    error_message = "Variable sensitive_inputs cannot be null."
-    condition     = var.sensitive_inputs != null
-  }
-  validation {
-    error_message = "Null values are not accepted. Use empty values instead."
-    condition     = alltrue([for v in values(var.sensitive_inputs) : v != null])
-  }
 }
+
+%{ for provider in vcs_providers ~}
+variable "ssh_key_private_${provider}" {
+  description = "SSH private key for accessing ${provider} repos."
+  type        = string
+  sensitive   = true
+}
+
+variable "ssh_key_public_${provider}" {
+  description = "SSH public key for accessing ${provider} repos."
+  type        = string
+}
+%{ endfor ~}
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Resources
@@ -47,9 +51,8 @@ module "bootstrap" {
   cluster_path     = var.cluster_path
   deploy_keys      = ${deploy_keys}
   namespaces       = ["${namespaces}"]
-  sensitive_inputs = var.sensitive_inputs # You should fill the corresponding values in terraform.tfvars.json
-  secrets          = {}
-  # Unlike the remote clusters, we do not pass the VCS tokens used by Flux Notifications API to update the status of each commit.
+  secrets          = ${secrets}
+  # Unlike the live clusters, we do not pass the VCS tokens used by Flux Notifications API to update the status of each commit.
   # You might see some errors related to this in your local cluster, you can safely ignore them. The 3 reasons for this are:
   # 1. Local commits won't benefit from this anyway
   # 2. We don't want to pollute existing notifications channels with errors happenning on your local cluster

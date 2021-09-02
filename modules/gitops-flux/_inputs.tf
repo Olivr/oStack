@@ -7,6 +7,11 @@ variable "tenants" {
   type = map(object({
     name         = string
     environments = set(string)
+    gpg_keys = map(object({
+      name        = string
+      fingerprint = string
+      public_key  = string
+    }))
     repos = map(object({
       name = string
       type = string
@@ -136,16 +141,6 @@ variable "init_cluster" {
   validation {
     condition     = var.init_cluster != null && var.init_cluster.module_source != null
     error_message = "You must specify a module source. If you want to use a local module, you should specify `cluster_init_path` instead and leave this with the defaults."
-  }
-}
-
-variable "local_var_template" {
-  description = "JSON Terraform variables template with empty values."
-  type        = string
-  default     = ""
-  validation {
-    condition     = var.local_var_template != null
-    error_message = "Variable local_var_template cannot be null, use an empty value instead."
   }
 }
 

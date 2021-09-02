@@ -79,14 +79,22 @@ locals {
     }
   ]...)
 
-  # Init cluster file for local clusters (CI and dev)
   repo_infra_local = {
-    "${local.infra_dir}/_local/terraform.tfvars.json" = var.local_var_template
-    "${local.infra_dir}/_local/main.tf" = templatefile("${path.module}/templates/infra/local.tf.tpl", {
+    "${local.infra_dir}/_ci/main.tf" = templatefile("${path.module}/templates/infra/ci.tf.tpl", {
       base_dir      = local.system_dir
       deploy_keys   = replace(jsonencode(var.deploy_keys["_ci"]), "/(\".*?\"):/", "$1 = ") # https://brendanthompson.com/til/2021/3/hcl-enabled-tfe-variables
       module_source = local.cluster_init_path != null ? "../shared-modules/init-cluster" : var.init_cluster.module_source
       namespaces    = join("\",\"", keys(local.tenants))
+      secrets       = replace(jsonencode(var.secrets["_ci"]), "/(\".*?\"):/", "$1 = ") # https://brendanthompson.com/til/2021/3/hcl-enabled-tfe-variables
+    })
+
+    "${local.infra_dir}/_dev/main.tf" = templatefile("${path.module}/templates/infra/dev.tf.tpl", {
+      vcs_providers = local.vcs_providers
+      base_dir      = local.system_dir
+      deploy_keys   = replace(jsonencode(var.deploy_keys["_dev"]), "/(\".*?\"):/", "$1 = ") # https://brendanthompson.com/til/2021/3/hcl-enabled-tfe-variables
+      module_source = local.cluster_init_path != null ? "../shared-modules/init-cluster" : var.init_cluster.module_source
+      namespaces    = join("\",\"", keys(local.tenants))
+      secrets       = replace(jsonencode(var.secrets["_dev"]), "/(\".*?\"):/", "$1 = ") # https://brendanthompson.com/til/2021/3/hcl-enabled-tfe-variables
     })
   }
 
