@@ -1,0 +1,367 @@
+#!/usr/bin/env bash
+# GitOps dev CLI v1.0.0
+#
+# This script is licensed under http://www.apache.org/licenses/LICENSE-2.0
+#
+# It provides helpers for working within an ops repo that was generated with oStack.
+#
+# Available options:
+# BASE_BRANCH=main                  Main branch where live clusters are syncing to
+# BRANCH_NAME=my-branch             Remote branch name
+# FEATURE_NAME=my-feat              Specify the feature name
+# FEATURE_TITLE=My feature          Specify the feature name
+# GPG_FP=xxx                        GPG key fingerprint to copy on the dev cluster (private key must be in your keyring)
+# KUBE_CTX=default                  Kube context to use to connect to a dev cluster not managed by this script
+# PATH_BOOTSTRAP=./bootstrap        Path to the directory holding the Terraform bootstrap code
+# PATH_GOTK_SYNC=./gotk-sync.yaml   Path to the YAML where the repo is synced (usually called gotk-sync.yaml)
+# SSH_KEY_PRIVATE=./id_rsa          Path to the SSH private key with access to all repos
+# SSH_KEY_PUBLIC=./id_rsa.pub       Path to the SSH public key with access to all repos
+# SYSTEM_DIR=system                 Specify the system directory name
+# VCS_PROVIDER=github               VCS provider for use with specific actions (ie. add/delete SSH keys if supported).
+
+set -o errexit
+set -o pipefail
+
+declare tool_name=$0
+declare action=$1
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Set global variables
+# ---------------------------------------------------------------------------------------------------------------------
+if ! git rev-parse --is-inside-work-tree &> /dev/null; then
+ echo "[ERR] This script can only run inside a valid GIT repository"
+ exit 1
+fi
+
+# Load configuration if any
+config=".config/oStack.yaml"
+if [[ -f $config ]] && command -v yq &> /dev/null; then
+  if [[ -z $SYSTEM_DIR && $(yq e 'has("system_folder")' $config) == "true" ]]; then SYSTEM_DIR=$(yq e '.system_folder' $config); fi
+  if [[ -z $BASE_BRANCH && $(yq e 'has("base_branch")' $config) == "true" ]]; then BASE_BRANCH=$(yq e '.base_branch' $config); fi
+  if [[ -z $PATH_BOOTSTRAP && $(yq e 'has("bootstrap_path")' $config) == "true" ]]; then PATH_BOOTSTRAP=$(yq e '.bootstrap_path' $config)/_dev; fi
+  if [[ -z $VCS_PROVIDER && $(yq e 'has("vcs_provider")' $config) == "true" ]]; then VCS_PROVIDER=$(yq e '.vcs_provider' $config); fi
+fi
+
+local_branch_name=$(git branch --show-current)
+
+if [[ -z $SYSTEM_DIR ]]; then
+  if [[ -d "system" ]]; then SYSTEM_DIR="system"
+  elif [[ -d "_ostack" ]]; then SYSTEM_DIR="_ostack"
+  else echo "[ERR] Cannot detect the system directory" & exit 1; fi
+fi
+
+if [[ -z $PATH_GOTK_SYNC ]]; then
+  if [[ -f "$SYSTEM_DIR/flux-system/gotk-sync.yaml" ]]; then PATH_GOTK_SYNC="$SYSTEM_DIR/flux-system/gotk-sync.yaml"
+  else echo "[ERR] Cannot detect the gotk-sync.yaml file" & exit 1; fi
+fi
+
+if [[ $action == "init" ]]; then
+  flux_branch_name=$(sed -nr 's/ *branch: *(.+)$/\1/p' "$PATH_GOTK_SYNC")
+
+  if [[ $local_branch_name == "main" || $local_branch_name == "master" || $local_branch_name == "$BASE_BRANCH" ]]; then
+    if [[ -z $FEATURE_TITLE ]]; then
+      echo "Which feature do you want to work on?"
+      read -r FEATURE_TITLE
+    fi
+  fi
+fi
+
+if [[ -z $FEATURE_TITLE ]]; then
+  FEATURE_TITLE=$(git branch --show-current)
+fi
+
+if [[ -z $FEATURE_NAME ]]; then
+  feature_title_lower=$(echo "$FEATURE_TITLE" | tr '[:upper:]' '[:lower:]')
+  FEATURE_NAME=${feature_title_lower//[!a-z0-9]/}
+fi
+
+if [[ -z $BRANCH_NAME ]]; then
+  BRANCH_NAME="$FEATURE_NAME"
+fi
+
+if [[ -z $BASE_BRANCH ]]; then
+  BASE_BRANCH=$(git show-branch | sed "s/].*//" | grep "\*" | grep -v "$(git rev-parse --abbrev-ref HEAD)" | head -n1 | sed "s/^.*\[//")
+fi
+
+if [[ -z $VCS_PROVIDER ]]; then
+  VCS_PROVIDER=$(git remote -v | grep origin | grep fetch | sed -r 's/^.+(git@|https?:\/\/)([^.]+).+$/\2/i')
+fi
+
+if [[ -z $PATH_BOOTSTRAP ]]; then
+  if [[ -d "./tools/bootstrap-cluster/local" ]]; then PATH_BOOTSTRAP="./tools/bootstrap-cluster/local"
+  else echo "Cannot detect the cluster bootstrap directory" & exit 1; fi
+fi
+
+if [[ "$local_branch_name" != "$BRANCH_NAME" ]]; then
+  git switch -c "$BRANCH_NAME"
+fi
+
+echo "Current branch: $BRANCH_NAME"
+echo "Base branch: $BASE_BRANCH"
+echo "VCS provider: $VCS_PROVIDER"
+echo ""
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Helper Functions
+# ---------------------------------------------------------------------------------------------------------------------
+hidden_exec() {
+  out=$(mktemp)
+  "${@}" &> "$out" || (cat "$out" && rm -f "$out" & false)
+}
+
+check_path() {
+  if ! [[ -d $1 ]]; then
+    echo "You must specify a path to the cluster configuration you want to use"
+    echo "For example run this script like:"
+    echo "$tool_name init environments/staging/clusters/staging-cluster1;"
+    exit 1
+  else
+    echo "$1"
+  fi
+}
+
+encrypt_secrets() {
+  declare -a options
+
+  if [[ $1 == "dev" ]]; then
+    echo "[INFO] Encrypting secrets for dev cluster"
+    if [[ -z $GPG_FP ]]; then GPG_FP=$(gpg --batch --with-colons --fingerprint "$FEATURE_NAME@local" | sed -nE "s/^fpr:+([A-Z0-9]+):*$/\1/p" | head -n 1); fi
+    options=("-p" "$GPG_FP")
+
+  elif [[ $1 == "live" && -d .gpg_keys ]]; then
+    echo "[INFO] Encrypting secrets for live clusters"
+    hidden_exec gpg --import .gpg_keys/*
+
+  else
+    echo "[INFO] Encrypting secrets for $1"
+    options=("-p" "$1")
+  fi
+
+  find .secrets -name '*.yaml' -o -name '*.yml' | sed 's|^.secrets/||g' | xargs -n1 -I SECRET_PATH sops "${options[@]}" --encrypt --output SECRET_PATH .secrets/SECRET_PATH
+}
+
+add_ssh_key() {
+  key_id=$1
+  key_path=$2
+
+  if [[ $VCS_PROVIDER == "github" ]] && command -v gh &> /dev/null; then
+    echo "[INFO] Adding SSH key to $VCS_PROVIDER"
+    hidden_exec gh ssh-key add --title "$key_id" "$key_path"
+  else
+    echo "[WARN] Manually add the $key_id SSH key located in $key_path to your $VCS_PROVIDER account."
+  fi
+}
+
+delete_ssh_key() {
+  key_id=$1
+
+  if [[ $VCS_PROVIDER == "github" ]] && command -v gh &> /dev/null; then
+    echo "[INFO] Deleting SSH key from $VCS_PROVIDER"
+    while read -r id; do
+      gh api -X DELETE "user/keys/$id" &> /dev/null
+    done < <(gh api user/keys | jq '.[] | select(.title == "'"$key_id"'") | .id')
+
+  else
+    echo "[WARN] Manually delete the $key_id SSH key from your $VCS_PROVIDER account."
+  fi
+}
+
+git_push() {
+  commit_options=("${@:2}")
+  push_options=("${@:2}")
+
+  if [[ $1 == "amend" ]]; then
+    commit_options+=("--amend" "--no-edit")
+    push_options=("--force")
+  else
+    commit_options+=("-m\"$1\"")
+  fi
+
+  echo "[INFO] Committing files"
+  git add .
+  hidden_exec git commit "${commit_options[@]}"
+
+  echo "[INFO] Pushing commit to origin/$BRANCH_NAME"
+  hidden_exec git push -u origin "$BRANCH_NAME" "${push_options[@]}"
+}
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Main Functions
+# ---------------------------------------------------------------------------------------------------------------------
+init() {
+  path=$1
+  reset=$2
+
+  overlay_path=$(check_path "$1")
+
+  # Overwrite Flux System branch
+  if [[ -z $reset ]]; then
+    sed -i '' "s|branch: $BASE_BRANCH|branch: $BRANCH_NAME|g" "$PATH_GOTK_SYNC"
+  fi
+
+  # Generate and add SSH key
+  if [[ -z $SSH_KEY_PRIVATE || -z $SSH_KEY_PUBLIC ]]; then
+    echo "[INFO] Generating new SSH key"
+    ssh_key_dir=$(mktemp -d)
+    ssh-keygen -N "" -m PEM -t rsa -f "$ssh_key_dir/$FEATURE_NAME" -q
+    add_ssh_key "dev_$FEATURE_NAME" "$ssh_key_dir/$FEATURE_NAME.pub"
+    SSH_KEY_PRIVATE="$ssh_key_dir/$FEATURE_NAME"
+    SSH_KEY_PUBLIC="$ssh_key_dir/$FEATURE_NAME.pub"
+  fi
+
+  if [[ -z $GPG_FP ]]; then
+    gpg_key_config=$(mktemp)
+    key_name="$FEATURE_NAME@local"
+
+    if ! gpg --list-secret-keys "$key_name" &> /dev/null; then
+      {
+        echo "%no-protection"
+        echo "Key-Type: 1"
+        echo "Key-Length: 2048"
+        echo "Expire-Date: 0"
+        echo "Name-Real: $key_name"
+      } > "$gpg_key_config"
+
+      echo "[INFO] Generating new GPG key"
+      hidden_exec gpg --batch --generate-key "$gpg_key_config"
+      rm -f "$gpg_key_config"
+    fi
+
+    GPG_FP=$(gpg --batch --with-colons --fingerprint "$FEATURE_NAME@local" | sed -nE "s/^fpr:+([A-Z0-9]+):*$/\1/p" | head -n 1)
+  fi
+
+  if [[ -d .secrets ]]; then
+    encrypt_secrets dev
+  fi
+
+  if [[ -n $reset ]]; then
+    git_push "amend" --no-verify
+  else
+    if [[ -z $COMMIT_MESSAGE ]]; then COMMIT_MESSAGE="Working on $FEATURE_TITLE"; fi
+    git_push "$COMMIT_MESSAGE" --no-verify
+  fi
+
+  if [[ -z $KUBE_CTX ]]; then
+    echo "[INFO] Creating kind cluster"
+    hidden_exec kind create cluster --name "$FEATURE_NAME"
+    KUBE_CTX="kind-$FEATURE_NAME"
+  fi
+
+  echo "[INFO] Bootstrapping cluster"
+  terraform -chdir=$PATH_BOOTSTRAP init > /dev/null
+  terraform -chdir=$PATH_BOOTSTRAP apply \
+  -auto-approve \
+  -var="gpg_key_private_sops=$(gpg --export-secret-keys --armor "$GPG_FP")" \
+  -var="ssh_key_private_$VCS_PROVIDER=$(cat "$SSH_KEY_PRIVATE")" \
+  -var="ssh_key_public_$VCS_PROVIDER=$(base64 < "$SSH_KEY_PUBLIC")" \
+  -var="cluster_path=$overlay_path" \
+  > /dev/null
+
+  if [[ -d "$ssh_key_dir" ]]; then rm -rf "$ssh_key_dir"; fi
+}
+
+cleanup() {
+  set +o pipefail
+
+  reset=$1
+
+  delete_ssh_key "dev_$FEATURE_NAME"
+
+  if [[ -z $KUBE_CTX ]]; then
+    echo "[INFO] Deleting kind cluster"
+    hidden_exec kind delete cluster --name "$FEATURE_NAME" > /dev/null
+    rm -f $PATH_BOOTSTRAP/terraform.tfstate*
+  fi
+
+  if [[ -z $GPG_FP ]]; then
+    key_fp=$(gpg --batch --with-colons --fingerprint "$FEATURE_NAME@local" | sed -nE "s/^fpr:+([A-Z0-9]+):*$/\1/p" | head -n 1)
+    if [[ -n $key_fp ]]; then
+      echo "[INFO] Deleting GPG key"
+      hidden_exec gpg --batch --yes --delete-secret-keys "$key_fp"
+      hidden_exec gpg --batch --yes --delete-keys "$key_fp"
+    fi
+  fi
+
+  if [[ -z $reset ]]; then
+
+    echo "[INFO] Updating $(basename $PATH_GOTK_SYNC)"
+    sed -i '' "s|branch: $BRANCH_NAME|branch: $BASE_BRANCH|g" "$PATH_GOTK_SYNC"
+
+    if [[ -d .gpg_keys && -d .secrets ]]; then
+      encrypt_secrets "live"
+
+      echo "[INFO] Deleting GPG keys for live cluster(s) from keyring"
+      while read -r file; do
+        key_fp=$(gpg --import-options show-only --import --with-colons "$file" | sed -nE "s/^fpr:+([A-Z0-9]+):*$/\1/p" | head -n 1)
+        hidden_exec gpg --batch --yes --delete-keys "$key_fp"
+      done < <(ls .gpg_keys/*)
+
+      while read -r file; do
+        if git cat-file -e "origin/$BASE_BRANCH:$file"; then
+          echo "[INFO] Restoring $file from origin/$BASE_BRANCH"
+          git restore "$file" --source "origin/$BASE_BRANCH" > /dev/null
+        fi
+      done < <(find .secrets -type f | sed 's|^\.secrets/||i')
+    fi
+
+    git_push "amend"
+
+  fi
+
+  set -o pipefail
+}
+
+# ---------------------------------------------------------------------------------------------------------------------
+# CLI Options
+# ---------------------------------------------------------------------------------------------------------------------
+if [[ $action == "init" ]]; then
+  path=$2
+
+  if [[ -n $path ]]; then
+    if [[ "$local_branch_name" == "$flux_branch_name" ]]; then
+      while true; do
+        read -rp "This will destroy and recreate your dev cluster (if using kind), are you sure (y/n)?" yn
+        case $yn in
+          [Yy]* ) break;;
+          [Nn]* ) exit;;
+          * ) echo "Please answer yes or no.";;
+        esac
+      done
+
+      cleanup "reset"
+      init "$path" "reset"
+
+    else init "$path"; fi
+  else
+    echo "You must provide a path to the directory your dev cluster should sync with."
+    exit 1
+  fi
+
+elif [[ $action == "encrypt" ]]; then
+  option=$2
+  encrypt_secrets "$option"
+
+elif [[ $action == "iterate" ]]; then
+  git_push "amend" --no-verify
+
+  echo "[INFO] Reconciling cluster"
+  if [[ -z $KUBE_CTX ]]; then KUBE_CTX="kind-$FEATURE_NAME"; fi
+  flux reconcile source git flux-system --context="$KUBE_CTX"
+
+elif [[ $action == "cleanup" ]]; then
+  cleanup
+
+else
+  echo "Usage examples:"
+  echo "$tool_name init environments/staging/clusters/staging-cluster1"
+  echo "$tool_name init environments/staging/clusters/staging-cluster1 --reset"
+  echo "$tool_name encrypt dev"
+  echo "$tool_name encrypt live"
+  echo "$tool_name encrypt EC2392F2EDE74488680DA3CF5F2B4756ED873D23"
+  echo "$tool_name iterate"
+  echo "$tool_name cleanup"
+  exit 1
+fi
+
+echo ""
+echo "Done."

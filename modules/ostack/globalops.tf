@@ -239,6 +239,31 @@ locals {
     }
   )
 
+  globalops_config_files = {
+    ".config/oStack.yaml" = yamlencode(merge(local.config_file, {
+      type           = "global-ops"
+      base_branch    = local.globalops_vcs_defaults.branch_default_name
+      template       = local.globalops_vcs_defaults.repo_template
+      vcs_provider   = var.vcs_default_provider
+      system_folder  = "_ostack"
+      bootstrap_path = local.globalops_gitops_defaults.infra_dir
+      environments = [for env in local.environments :
+        { (env.name) = env.name }
+      ]
+      clusters = [for cluster in local.environments_clusters :
+        { (cluster.name) = "${cluster._env.name}/${cluster.name}" }
+      ]
+      # system_folder  = "system"
+      # bootstrap_path = "infra/bootstrap-clusters"
+      # environments = [for env in local.environments :
+      #   { (env.name) = "environments/${env.name}" }
+      # ]
+      # clusters = [for cluster in local.environments_clusters :
+      #   { (cluster.name) = "environments/${cluster._env.name}/clusters/${cluster.name}" }
+      # ]
+    }))
+  }
+
   globalops_vcs_files_prepare = merge(
     lookup(local.dev, "all_files_strict", false) ? null : local.gitops.repo_files,
     lookup(local.dev, "all_files_strict", false) ? null : local.vcs_config[var.vcs_default_provider].files
@@ -263,6 +288,7 @@ locals {
     lookup(local.dev, "all_files_strict", false) ? local.gitops.repo_files : null,
     local.gitops.repo_system_files,
     local.vcs_config[var.vcs_default_provider].files_strict,
+    local.globalops_config_files
   )
 
   globalops_vcs_files_strict_formatted = { for file_path, content in local.globalops_vcs_files_strict_prepare :

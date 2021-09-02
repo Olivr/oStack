@@ -38,7 +38,9 @@ This module's official repo is located here: [https://github.com/Olivr/oStack/](
 
 | Name | Type |
 | --- | --- |
+| [gpg_private_key.ci_key](https://registry.terraform.io/providers/Olivr/gpg/latest/docs/resources/private_key) | resource |
 | [gpg_private_key.cluster_keys](https://registry.terraform.io/providers/Olivr/gpg/latest/docs/resources/private_key) | resource |
+| [gpg_private_key.ns_keys](https://registry.terraform.io/providers/Olivr/gpg/latest/docs/resources/private_key) | resource |
 | [tls_private_key.ci_keys](https://registry.terraform.io/providers/hashicorp/tls/latest/docs/resources/private_key) | resource |
 | [tls_private_key.cluster_keys](https://registry.terraform.io/providers/hashicorp/tls/latest/docs/resources/private_key) | resource |
 | [tls_private_key.ns_keys](https://registry.terraform.io/providers/hashicorp/tls/latest/docs/resources/private_key) | resource |
