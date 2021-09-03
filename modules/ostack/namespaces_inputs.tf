@@ -12,10 +12,11 @@ variable "namespaces" {
     By default a main namespace will be created with a typical repo structure (infra/apps/ops).
     DESC
   type = map(object({
-    title        = string
-    name         = optional(string)
-    description  = optional(string)
-    environments = optional(list(string))
+    title            = string
+    name             = optional(string)
+    description      = optional(string)
+    environments     = optional(list(string))
+    tenant_isolation = optional(bool)
     repos = map(object({
       type                = string
       name                = optional(string)

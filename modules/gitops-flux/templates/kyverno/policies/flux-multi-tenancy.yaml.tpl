@@ -6,15 +6,12 @@ spec:
   validationFailureAction: enforce
   rules:
     - name: serviceAccountName
-      exclude:
-        resources:
-          namespaces:
-            - flux-system
-%{ for tenant in excluded_tenants ~}
-            - "${tenant}"
-%{ endfor ~}
       match:
         resources:
+          namespaces:
+%{ for tenant in tenants ~}
+            - "${tenant}"
+%{ endfor ~}
           kinds:
             - Kustomization
             - HelmRelease
@@ -24,12 +21,12 @@ spec:
           spec:
             serviceAccountName: "?*"
     - name: sourceRefNamespace
-      exclude:
-        resources:
-          namespaces:
-            - flux-system
       match:
         resources:
+          namespaces:
+%{ for tenant in tenants ~}
+            - "${tenant}"
+%{ endfor ~}
           kinds:
             - Kustomization
             - HelmRelease

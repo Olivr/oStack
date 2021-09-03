@@ -140,8 +140,7 @@ locals {
     })
     "${local.system_dir}/kyverno/policies/disallow-default-namespace.yaml" = file("${path.module}/templates/kyverno/policies/disallow-default-namespace.yaml")
     "${local.system_dir}/kyverno/policies/flux-multi-tenancy.yaml" = templatefile("${path.module}/templates/kyverno/policies/flux-multi-tenancy.yaml.tpl", {
-      #excluded_tenants = [for tenant in local.tenants : tenant.name if !tenant.tenants_isolation]
-      excluded_tenants = []
+      tenants = [for tenant in local.tenants : tenant.name if tenant.tenant_isolation]
     })
     "${local.system_dir}/kyverno/sync.yaml" = templatefile("${path.module}/templates/kyverno/sync.yaml.tpl", {
       base_dir = local.system_dir

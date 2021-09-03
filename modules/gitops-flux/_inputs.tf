@@ -5,8 +5,9 @@
 variable "tenants" {
   description = "Tenants and their repos."
   type = map(object({
-    name         = string
-    environments = set(string)
+    name             = string
+    environments     = set(string)
+    tenant_isolation = bool
     gpg_keys = map(object({
       name        = string
       fingerprint = string
