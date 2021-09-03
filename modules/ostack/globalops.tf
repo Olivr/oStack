@@ -245,22 +245,14 @@ locals {
       base_branch    = local.globalops_vcs_defaults.branch_default_name
       template       = local.globalops_vcs_defaults.repo_template
       vcs_provider   = var.vcs_default_provider
-      system_folder  = "_ostack"
+      system_folder  = local.globalops_gitops_defaults.system_dir
       bootstrap_path = local.globalops_gitops_defaults.infra_dir
       environments = [for env in local.environments :
-        { (env.name) = env.name }
+        { (env.name) = "environments/${env.name}" }
       ]
       clusters = [for cluster in local.environments_clusters :
-        { (cluster.name) = "${cluster._env.name}/${cluster.name}" }
+        { (cluster.name) = "environments/${cluster._env.name}/clusters/${cluster.name}" }
       ]
-      # system_folder  = "system"
-      # bootstrap_path = "infra/bootstrap-clusters"
-      # environments = [for env in local.environments :
-      #   { (env.name) = "environments/${env.name}" }
-      # ]
-      # clusters = [for cluster in local.environments_clusters :
-      #   { (cluster.name) = "environments/${cluster._env.name}/clusters/${cluster.name}" }
-      # ]
     }))
   }
 

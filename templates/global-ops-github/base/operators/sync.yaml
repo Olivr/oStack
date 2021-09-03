@@ -11,6 +11,6 @@ spec:
   sourceRef:
     kind: GitRepository
     name: flux-system
-  path: ./_base/operators
+  path: ./base/operators
   prune: true
   validation: client

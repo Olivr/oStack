@@ -7,11 +7,13 @@ locals {
   partial = "${path.module}/partials"
 
   # Remove begining and trailing '/' from directory names
-  base_dir    = trim(var.base_dir, "/")
-  infra_dir   = trim(var.infra_dir, "/")
-  overlay_dir = trim(var.overlay_dir, "/")
-  system_dir  = trim(var.system_dir, "/")
-  tenants_dir = trim(var.tenants_dir, "/")
+  base_dir     = trim(var.base_dir, "/")
+  clusters_dir = trim(var.clusters_dir, "/")
+  env_dir      = trim(var.environments_dir, "/")
+  infra_dir    = trim(var.infra_dir, "/")
+  overlay_dir  = trim(var.overlay_dir, "/")
+  system_dir   = trim(var.system_dir, "/")
+  tenants_dir  = trim(var.tenants_dir, "/")
 
   # Normalize cluster_init_path if it was provided
   cluster_init_path = var.cluster_init_path == null || var.cluster_init_path == "" ? null : trimsuffix(

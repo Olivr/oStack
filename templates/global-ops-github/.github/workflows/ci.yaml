@@ -67,15 +67,15 @@ jobs:
       - name: Bootstrap CI cluster
         run: terraform -chdir="$BOOTSTRAP_PATH" apply --auto-approve
         env:
-          TF_VAR_cluster_path: ${{ matrix.path }}
+          TF_VAR_cluster_path: ${{ matrix.path }}/${{ needs.matrix.outputs.system_folder }}
 
       - name: Verify oStack generated cluster reconciliation
         run: |
           kubectl wait --for=condition=ready --timeout=2m -n flux-system kustomization/flux-system
           kubectl wait --for=condition=ready --timeout=1m -n flux-system kustomization/kyverno
           kubectl wait --for=condition=ready --timeout=1m -n flux-system kustomization/kyverno-policies
-          kubectl wait --for=condition=ready --timeout=1m -n flux-system kustomization/$(echo "${{ matrix.path }}" | sed -E 's`^([^/]+)/(.+)$`\1`g')-tenants
-          kubectl wait --for=condition=ready --timeout=1m -n flux-system kustomization/$(echo "${{ matrix.path }}" | sed -E 's`^([^/]+)/(.+)$`\2`g')
+          kubectl wait --for=condition=ready --timeout=1m -n flux-system kustomization/$(cut -d/ -f2 <<< "${{ matrix.path }}")-tenants
+          kubectl wait --for=condition=ready --timeout=1m -n flux-system kustomization/$(cut -d/ -f4 <<< "${{ matrix.path }}")
 
       - name: Verify all found kustomizations
         run: kubectl get kustomizations -A -o json | jq ".items[].metadata | [.name, .namespace] | @csv" -r | sed -E 's`^"([^"]+)","([^"]+)"`\2 kustomization/\1`g' |  xargs -I {} sh -c "kubectl wait --for=condition=ready --timeout=1m -n {}"

@@ -122,6 +122,26 @@ variable "tenants_dir" {
   }
 }
 
+variable "clusters_dir" {
+  description = "Name of the tenants directory."
+  type        = string
+  default     = "clusters"
+  validation {
+    condition     = var.clusters_dir != null
+    error_message = "You must specify a the name of the clusters directory."
+  }
+}
+
+variable "environments_dir" {
+  description = "Name of the tenants directory."
+  type        = string
+  default     = "environments"
+  validation {
+    condition     = var.environments_dir != null
+    error_message = "You must specify a the name of the environments directory."
+  }
+}
+
 variable "cluster_init_path" {
   description = "Path to the cluster init module directory if you'd rather use an inline module rather than an external one."
   type        = string

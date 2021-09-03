@@ -70,7 +70,7 @@ locals {
       "${local.infra_dir}/${env.name}-${cluster.name}/main.tf" => templatefile("${path.module}/templates/infra/remote.tf.tpl", {
         base_dir      = local.system_dir
         base_path     = "../../.."
-        cluster_path  = "./${env.name}/${cluster.name}/${local.system_dir}"
+        cluster_path  = "./${local.env_dir}/${env.name}/${local.clusters_dir}/${cluster.name}/${local.system_dir}"
         deploy_keys   = replace(jsonencode(var.deploy_keys[cluster.name]), "/(\".*?\"):/", "$1 = ") # https://brendanthompson.com/til/2021/3/hcl-enabled-tfe-variables
         module_source = local.cluster_init_path != null ? "../shared-modules/init-cluster" : var.init_cluster.module_source
         namespaces    = join("\",\"", local.environment_tenants[env.name])
@@ -190,52 +190,52 @@ locals {
   # Environments configuration
   repo_environments_strict = merge(flatten([for env in values(var.environments) : merge(
     {
-      "${env.name}/${local.system_dir}/kustomization.yaml" = templatefile("${local.partial}/kustomization.yaml.tpl", {
-        paths = ["../../${local.system_dir}", "sync.yaml"]
+      "${local.env_dir}/${env.name}/${local.system_dir}/kustomization.yaml" = templatefile("${local.partial}/kustomization.yaml.tpl", {
+        paths = ["../../../${local.system_dir}", "sync.yaml"]
       })
-      "${env.name}/${local.system_dir}/sync.yaml" = templatefile("${path.module}/templates/env/sync.yaml.tpl", {
-        env_name    = env.name
-        tenants_dir = local.tenants_dir
-        base_dir    = local.system_dir
+      "${local.env_dir}/${env.name}/${local.system_dir}/sync.yaml" = templatefile("${path.module}/templates/env/sync.yaml.tpl", {
+        env_name     = env.name
+        tenants_dir  = local.tenants_dir
+        tenants_path = "${local.env_dir}/${env.name}/${local.system_dir}/${local.tenants_dir}"
       })
-      "${env.name}/${local.overlay_dir}/kustomization.yaml" = templatefile("${local.partial}/kustomization.yaml.tpl", {
-        paths = ["../../${local.base_dir}"]
+      "${local.env_dir}/${env.name}/${local.overlay_dir}/kustomization.yaml" = templatefile("${local.partial}/kustomization.yaml.tpl", {
+        paths = ["../../../${local.base_dir}"]
       })
 
       # Tenants
-      "${env.name}/${local.system_dir}/${local.tenants_dir}/${local.tenants_dir}-patch.yaml" = templatefile("${local.partial}/patch.yaml.tpl", {
+      "${local.env_dir}/${env.name}/${local.system_dir}/${local.tenants_dir}/${local.tenants_dir}-patch.yaml" = templatefile("${local.partial}/patch.yaml.tpl", {
         kind       = "Kustomization"
         metadata   = { name = "gitops-repo" }
         patch_type = "merge"
-        spec       = { path = "./${env.name}" }
+        spec       = { path = "./${local.env_dir}/${env.name}" }
       })
-      "${env.name}/${local.system_dir}/${local.tenants_dir}/kustomization.yaml" = templatefile("${path.module}/templates/env/tenants/kustomization.yaml.tpl", {
+      "${local.env_dir}/${env.name}/${local.system_dir}/${local.tenants_dir}/kustomization.yaml" = templatefile("${path.module}/templates/env/tenants/kustomization.yaml.tpl", {
         paths       = local.environment_tenants[env.name]
         tenants_dir = local.tenants_dir
         base_dir    = local.system_dir
       })
-      "${env.name}/${local.system_dir}/${local.tenants_dir}/prefix-kustomization.yaml" = templatefile("${path.module}/templates/env/tenants/prefix-kustomization.yaml.tpl", {
+      "${local.env_dir}/${env.name}/${local.system_dir}/${local.tenants_dir}/prefix-kustomization.yaml" = templatefile("${path.module}/templates/env/tenants/prefix-kustomization.yaml.tpl", {
         name = env.name
       })
     },
 
     # Clusters
     merge([for cluster in values(env.clusters) : {
-      "${env.name}/${cluster.name}/${local.overlay_dir}/kustomization.yaml" = templatefile("${local.partial}/kustomization.yaml.tpl", {
-        paths = ["../../${local.overlay_dir}"]
+      "${local.env_dir}/${env.name}/${local.clusters_dir}/${cluster.name}/${local.overlay_dir}/kustomization.yaml" = templatefile("${local.partial}/kustomization.yaml.tpl", {
+        paths = ["../../../${local.overlay_dir}"]
       })
-      "${env.name}/${cluster.name}/${local.system_dir}/kustomization.yaml" = templatefile("${path.module}/templates/env/cluster/kustomization.yaml.tpl", {
+      "${local.env_dir}/${env.name}/${local.clusters_dir}/${cluster.name}/${local.system_dir}/kustomization.yaml" = templatefile("${path.module}/templates/env/cluster/kustomization.yaml.tpl", {
         base_dir = local.system_dir
       })
-      "${env.name}/${cluster.name}/${local.system_dir}/flux-system-patch.yaml" = templatefile("${local.partial}/patch.yaml.tpl", {
+      "${local.env_dir}/${env.name}/${local.clusters_dir}/${cluster.name}/${local.system_dir}/flux-system-patch.yaml" = templatefile("${local.partial}/patch.yaml.tpl", {
         kind       = "Kustomization"
         metadata   = { name = "flux-system", namespace = "flux-system" }
         patch_type = "merge"
-        spec       = { path = "./${env.name}/${cluster.name}/${local.system_dir}" }
+        spec       = { path = "./${local.env_dir}/${env.name}/${local.clusters_dir}/${cluster.name}/${local.system_dir}" }
       })
-      "${env.name}/${cluster.name}/${local.system_dir}/sync.yaml" = templatefile("${path.module}/templates/env/cluster/sync.yaml.tpl", {
-        name = cluster.name
-        env  = env.name
+      "${local.env_dir}/${env.name}/${local.clusters_dir}/${cluster.name}/${local.system_dir}/sync.yaml" = templatefile("${path.module}/templates/env/cluster/sync.yaml.tpl", {
+        name         = cluster.name
+        overlay_path = "${local.env_dir}/${env.name}/${local.clusters_dir}/${cluster.name}/${local.overlay_dir}"
       })
     }]...))
   ])...)
@@ -243,13 +243,13 @@ locals {
   # Environments configuration
   repo_environments = merge(flatten([for env in values(var.environments) : merge(
     {
-      "${env.name}/${local.overlay_dir}/kustomization.yaml" = templatefile("${local.partial}/kustomization.yaml.tpl", {
-        paths = ["../../${local.base_dir}"]
+      "${local.env_dir}/${env.name}/${local.overlay_dir}/kustomization.yaml" = templatefile("${local.partial}/kustomization.yaml.tpl", {
+        paths = ["../../../${local.base_dir}"]
       })
     },
     merge([for cluster in values(env.clusters) : {
-      "${env.name}/${cluster.name}/${local.overlay_dir}/kustomization.yaml" = templatefile("${local.partial}/kustomization.yaml.tpl", {
-        paths = ["../../${local.overlay_dir}"]
+      "${local.env_dir}/${env.name}/${local.clusters_dir}/${cluster.name}/${local.overlay_dir}/kustomization.yaml" = templatefile("${local.partial}/kustomization.yaml.tpl", {
+        paths = ["../../../${local.overlay_dir}"]
       })
     }]...))
   ])...)

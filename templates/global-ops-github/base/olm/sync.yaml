@@ -9,7 +9,7 @@ spec:
   sourceRef:
     kind: GitRepository
     name: flux-system
-  path: ./_base/olm/crds
+  path: ./base/olm/crds
   prune: true
   validation: client
 
@@ -26,6 +26,6 @@ spec:
   sourceRef:
     kind: GitRepository
     name: flux-system
-  path: ./_base/olm/install
+  path: ./base/olm/install
   prune: true
   validation: client

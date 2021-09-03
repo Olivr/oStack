@@ -11,14 +11,14 @@ locals {
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
   gitops_config_base_defaults = {
-    base_dir          = "_base"
+    base_dir          = "base"
     cluster_init_path = lookup(local.dev, "module_cluster_init", null)
     environments      = null
-    infra_dir         = "_ostack/bootstrap-clusters"
+    infra_dir         = "system/bootstrap-clusters"
     namespaces        = null
     provider          = null
-    system_dir        = "_ostack"
-    overlay_dir       = "_overlays"
+    system_dir        = "system"
+    overlay_dir       = "overlays"
     tenant_isolation  = true
     init_cluster = {
       module_source  = "Olivr/init-cluster/flux"

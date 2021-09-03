@@ -11,7 +11,7 @@ spec:
   sourceRef:
     kind: GitRepository
     name: "flux-system"
-  path: ./${env_name}/${base_dir}/${tenants_dir}
+  path: ./${tenants_path}
   prune: true
   validation: client
   decryption:

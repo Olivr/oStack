@@ -6,12 +6,12 @@ locals {
   tenants_files = { for ns_id, namespace in var.tenants :
     ns_id => { for repo_id, repo in namespace.repos :
       repo_id => { for env in namespace.environments :
-        "${var.environments[env].name}/kustomization.yaml" => <<-EOF
+        "${local.env_dir}/${var.environments[env].name}/kustomization.yaml" => <<-EOF
             apiVersion: kustomize.config.k8s.io/v1beta1
             kind: Kustomization
             namespace: ${namespace.name}
             resources:
-              - "../${local.base_dir}"
+              - "../../${local.base_dir}"
             EOF
       } if repo.type == "ops"
     }
