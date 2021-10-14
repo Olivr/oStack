@@ -6,7 +6,7 @@ concurrency:
 on:
   workflow_run:
     branches: [main]
-    workflows: [Run tests]
+    workflows: [CI tests]
     types: [completed]
 
 jobs:

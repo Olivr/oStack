@@ -21,7 +21,7 @@ resource "github_branch_protection" "default" {
 
   # GitHub recreates the commits when rebase merging. As a result, any signed commit is not signed anymore
   # Keep to false to not break rebase merging until GitHub changes this behaviour
-  # require_signed_commits = !var.repo_configuration.repo_allow_rebase_merge
+  require_signed_commits = !var.allow_rebase_merge
 
   dynamic "required_status_checks" {
     for_each = length(var.branch_status_checks) > 0 ? [1] : []

@@ -60,12 +60,17 @@ locals {
     })
     repo_secrets = {
       ci_sensitive_inputs = "sensitive::ci_sensitive_inputs"
-      ci_init_path        = "${local.globalops_gitops_defaults.infra_dir}/_local"
     }
     sensitive_inputs = {
       ci_sensitive_inputs = jsonencode({
         sensitive_inputs = merge(
-          { "${local.globalops_base.name}_private_key" = sensitive(tls_private_key.ci_keys["_globalops"].private_key_pem) },
+          {
+            "${local.globalops_base.name}_private_key" = sensitive(tls_private_key.ci_keys["_globalops"].private_key_pem)
+            "sops_gpg_key"                             = sensitive(gpg_private_key.ci_key.private_key)
+          },
+          { for ns_id, ns in local.namespaces_ops :
+            "${ns_id}_gpg_key" => sensitive(gpg_private_key.ci_key.private_key)
+          },
           { for id, repo in local.namespaces_repos_ops :
             "${repo.name}_private_key" => sensitive(tls_private_key.ci_keys[id].private_key_pem)
           }
@@ -90,7 +95,17 @@ locals {
   }
 
   globalops_gitops_base = {
-    namespaces   = local.namespaces
+    namespaces = { for ns_id, ns in local.namespaces_ops :
+      ns_id => merge(ns, {
+        gpg_keys = { for env_id in ns.environments :
+          env_id => {
+            name        = "${local.environments[env_id].name}-${ns.name}"
+            fingerprint = gpg_private_key.ns_keys["${env_id}_${ns_id}"].fingerprint
+            public_key  = gpg_private_key.ns_keys["${env_id}_${ns_id}"].public_key
+          }
+        }
+      })
+    }
     environments = local.environments
   }
 
@@ -111,11 +126,19 @@ locals {
       }
       sensitive_inputs = {
         kube_token = sensitive(local.cloud_clusters_k8s[cluster_id].kube_token)
-        sensitive_inputs = replace(jsonencode(merge({
-          "sops-gpg"                                 = try(gpg_private_key.cluster_keys[cluster_id].private_key, "")
-          "${local.globalops_base.name}_private_key" = sensitive(tls_private_key.cluster_keys[cluster_id].private_key_pem)
-          "${local.globalops_base.name}_vcs_token"   = sensitive(var.vcs_write_token[var.vcs_default_provider])
-          }, merge([for id, repo in local.namespaces_repos_ops :
+        sensitive_inputs = replace(jsonencode(merge(
+          # Global Ops
+          {
+            "sops_gpg_key"                             = try(gpg_private_key.cluster_keys[cluster_id].private_key, "")
+            "${local.globalops_base.name}_private_key" = sensitive(tls_private_key.cluster_keys[cluster_id].private_key_pem)
+            "${local.globalops_base.name}_vcs_token"   = sensitive(var.vcs_write_token[var.vcs_default_provider])
+          },
+          # Namespaces
+          { for ns_id, ns in local.namespaces_ops :
+            "${ns_id}_gpg_key" => sensitive(gpg_private_key.ns_keys["${cluster._env.id}_${ns_id}"].private_key) if contains(ns.environments, cluster._env.id)
+          },
+          # Repos
+          merge([for id, repo in local.namespaces_repos_ops :
             {
               "${repo.name}_private_key" = sensitive(tls_private_key.ns_keys["${id}_${cluster_id}"].private_key_pem)
               "${repo.name}_vcs_token"   = sensitive(var.vcs_write_token[repo.vcs.provider])
@@ -216,6 +239,23 @@ locals {
     }
   )
 
+  globalops_config_files = {
+    ".config/oStack.yaml" = yamlencode(merge(local.config_file, {
+      type           = "global-ops"
+      base_branch    = local.globalops_vcs_defaults.branch_default_name
+      template       = local.globalops_vcs_defaults.repo_template
+      vcs_provider   = var.vcs_default_provider
+      system_folder  = local.globalops_gitops_defaults.system_dir
+      bootstrap_path = local.globalops_gitops_defaults.infra_dir
+      environments = [for env in local.environments :
+        { (env.name) = "environments/${env.name}" }
+      ]
+      clusters = [for cluster in local.environments_clusters :
+        { (cluster.name) = "environments/${cluster._env.name}/clusters/${cluster.name}" }
+      ]
+    }))
+  }
+
   globalops_vcs_files_prepare = merge(
     lookup(local.dev, "all_files_strict", false) ? null : local.gitops.repo_files,
     lookup(local.dev, "all_files_strict", false) ? null : local.vcs_config[var.vcs_default_provider].files
@@ -223,9 +263,9 @@ locals {
 
   globalops_vcs_files_formatted = { for file_path, content in local.globalops_vcs_files_prepare :
     (file_path) => try(join("\n", concat(
-      compact([lookup(local.globalops_vcs_base.file_templates, "${trimprefix(regex("/?[^/^]+$", lower(file_path)), "/")}_header", "")]),
+      compact([lookup(local.globalops_vcs_defaults.file_templates, "${trimprefix(regex("/?[^/^]+$", lower(file_path)), "/")}_header", "")]),
       content,
-      compact([lookup(local.globalops_vcs_base.file_templates, "${trimprefix(regex("/?[^/^]+$", lower(file_path)), "/")}_footer", "")])
+      compact([lookup(local.globalops_vcs_defaults.file_templates, "${trimprefix(regex("/?[^/^]+$", lower(file_path)), "/")}_footer", "")])
     )), content)
   }
 
@@ -239,43 +279,39 @@ locals {
     lookup(local.dev, "all_files_strict", false) ? local.vcs_config[var.vcs_default_provider].files : null,
     lookup(local.dev, "all_files_strict", false) ? local.gitops.repo_files : null,
     local.gitops.repo_system_files,
-    local.vcs_config[var.vcs_default_provider].files_strict
+    local.vcs_config[var.vcs_default_provider].files_strict,
+    local.globalops_config_files
   )
 
   globalops_vcs_files_strict_formatted = { for file_path, content in local.globalops_vcs_files_strict_prepare :
     (file_path) => try(join("\n", concat(
-      compact([lookup(local.globalops_vcs_base.file_templates, "${trimprefix(regex("/?[^/^]+$", lower(file_path)), "/")}_header", "")]),
+      compact([lookup(local.globalops_vcs_defaults.file_templates, "${trimprefix(regex("/?[^/^]+$", lower(file_path)), "/")}_header", "")]),
       content,
-      compact([lookup(local.globalops_vcs_base.file_templates, "${trimprefix(regex("/?[^/^]+$", lower(file_path)), "/")}_footer", "")])
+      compact([lookup(local.globalops_vcs_defaults.file_templates, "${trimprefix(regex("/?[^/^]+$", lower(file_path)), "/")}_footer", "")])
     )), content)
   }
 
-  # Add template files if a local template was used
   globalops_vcs_files_strict = merge(
+    # Add template files if a local template was used
     lookup(local.dev, "all_files_strict", false) ? lookup(local.vcs_templates_files, "globalops", null) : null,
     local.globalops_vcs_files_strict_formatted
   )
 
-  # Prepare empty variable file to be filled by users
-  globalops_gitops_local_vars_template = jsonencode({
-    cluster_path = try("./${values(local.environments)[0].name}/${values(values(local.environments)[0].clusters)[0].name}/${local.globalops_gitops_defaults.system_dir}", "./${local.globalops_gitops_defaults.system_dir}")
-    sensitive_inputs = merge(
-      { "${local.globalops_base.name}_private_key" = "" },
-      { for repo in local.namespaces_repos_ops :
-        "${repo.name}_private_key" => ""
-      }
-    )
-  })
-
-  globalops_gitops_deploy_keys = { for cluster_id, cluster in merge(local.environments_clusters, { _ci = { name = "_ci" } }) :
+  globalops_gitops_deploy_keys = { for cluster_id, cluster in merge(local.environments_clusters, { _ci = { name = "_ci" }, _dev = { name = "_dev" } }) :
     (cluster.name) => merge(
       {
         "globalops" = {
           name        = "flux-system"
           namespace   = "flux-system"
           known_hosts = local.vcs_provider_config[var.vcs_default_provider].known_hosts
-          public_key  = base64encode(cluster.name == "_ci" ? tls_private_key.ci_keys["_globalops"].public_key_pem : tls_private_key.cluster_keys[cluster_id].public_key_pem)
-          private_key = "sensitive::${local.globalops_base.name}_private_key"
+          public_key = cluster.name == "_dev" ? "$${var.ssh_key_public_${var.vcs_default_provider}}" : base64encode(
+            cluster.name == "_ci" ? tls_private_key.ci_keys["_globalops"].public_key_pem
+            : tls_private_key.cluster_keys[cluster_id].public_key_pem
+          )
+          private_key = (
+            cluster.name == "_dev" ? "$${var.ssh_key_private_${var.vcs_default_provider}}"
+            : "sensitive::${local.globalops_base.name}_private_key"
+          )
         }
       },
       { for repo_id, repo in local.namespaces_repos_ops :
@@ -283,31 +319,50 @@ locals {
           name        = "flux-${repo.name}"
           namespace   = repo._namespace.name
           known_hosts = local.vcs_provider_config[repo.vcs.provider].known_hosts
-          public_key  = base64encode(cluster.name == "_ci" ? tls_private_key.ci_keys[repo_id].public_key_pem : tls_private_key.ns_keys["${repo_id}_${cluster_id}"].public_key_pem)
-          private_key = "sensitive::${repo.name}_private_key"
-        } if cluster.name == "_ci" || try(contains(repo._namespace.environments, cluster._env.id), false)
+          public_key = cluster.name == "_dev" ? "$${var.ssh_key_public_${repo.vcs.provider}}" : base64encode(
+            cluster.name == "_ci" ? tls_private_key.ci_keys[repo_id].public_key_pem
+            : tls_private_key.ns_keys["${repo_id}_${cluster_id}"].public_key_pem
+          )
+          private_key = (
+            cluster.name == "_dev" ? "$${var.ssh_key_private_${repo.vcs.provider}}"
+            : "sensitive::${repo.name}_private_key"
+          )
+        } if cluster.name == "_ci" || cluster.name == "_dev" || try(contains(repo._namespace.environments, cluster._env.id), false)
     })
   }
 
-  globalops_gitops_secrets = { for cluster_id, cluster in local.environments_clusters :
-    (cluster.name) => merge({
-      sops = {
-        name      = "sops-gpg"
-        namespace = "flux-system"
-        data      = { "sops.asc" = "sensitive::sops-gpg" }
+  globalops_gitops_secrets = { for cluster_id, cluster in merge(local.environments_clusters, { _ci = { name = "_ci" }, _dev = { name = "_dev" } }) :
+    (cluster.name) => merge(
+      # Global Ops
+      {
+        sops = {
+          name      = "sops-gpg"
+          namespace = "flux-system"
+          data      = { "sops.asc" = cluster_id == "_dev" ? "$${var.gpg_key_private_sops}" : "sensitive::sops_gpg_key" }
+        }
+        globalops_vcs_token = {
+          name      = "vcs-token"
+          namespace = "flux-system"
+          data      = { token = cluster_id == "_dev" || cluster_id == "_ci" ? "none" : "sensitive::${local.globalops_base.name}_vcs_token" }
+        }
+      },
+      # Namespaces
+      { for ns_id, ns in local.namespaces_ops :
+        "${ns.name}_sops" => {
+          name      = "sops-gpg"
+          namespace = ns.name
+          data      = { "sops.asc" = cluster_id == "_dev" ? "$${var.gpg_key_private_sops}" : cluster_id == "_ci" ? "sensitive::sops_gpg_key" : "sensitive::${ns_id}_gpg_key" }
+        } if cluster_id == "_dev" || cluster_id == "_ci" || try(contains(ns.environments, cluster._env.id), false)
+      },
+      # Repos
+      cluster_id == "_dev" || cluster_id == "_ci" ? {} : { for repo_id, repo in local.namespaces_repos_ops :
+        "${repo_id}_vcs_token" => {
+          name      = "vcs-token-${replace(repo.name, "/[\\s_\\.]/", "-")}"
+          namespace = "flux-system"
+          data      = { token = "sensitive::${repo.name}_vcs_token" }
+        } if contains(repo._namespace.environments, cluster._env.id)
       }
-      globalops_vcs_token = {
-        name      = "vcs-token"
-        namespace = "flux-system"
-        data      = { token = "sensitive::${local.globalops_base.name}_vcs_token" }
-      }
-      }, { for repo_id, repo in local.namespaces_repos_ops :
-      "${repo_id}_vcs_token" => {
-        name      = "vcs-token-${replace(repo.name, "/[\\s_\\.]/", "-")}"
-        namespace = "flux-system"
-        data      = { token = "sensitive::${repo.name}_vcs_token" }
-      } if contains(repo._namespace.environments, cluster._env.id)
-    })
+    )
   }
 
   globalops_vcs = merge(
@@ -318,171 +373,4 @@ locals {
       files_strict = local.globalops_vcs_defaults.branch_protection ? {} : local.globalops_vcs_files_strict
     }
   )
-
-  # globalops_backends = { for cluster_id, cluster in local.environments_clusters :
-  #   (cluster.name) => merge(local.globalops_backend_base, {
-  #     _cluster_name         = cluster.name
-  #     _env_name             = cluster._env.name
-  #     name                  = "${local.globalops_base.name}-${cluster._env.name}-${cluster.name}"
-  #     description           = "${local.globalops_base.description} (${cluster.name})"
-  #     vcs_working_directory = "${local.globalops_gitops_base.infra_dir}/${cluster._env.name}-${cluster.name}"
-  #     vcs_trigger_paths     = ["${local.globalops_gitops_base.infra_dir}/shared-modules"]
-  #     auto_apply            = cluster._env.continuous_delivery
-  #     tf_vars = merge(local.globalops_backend_base.tf_vars, {
-  #       kube_host           = local.cloud_clusters_k8s[cluster_id].kube_host
-  #       kube_token          = "sensitive::kube_token"
-  #       kube_ca_certificate = local.cloud_clusters_k8s[cluster_id].kube_ca_certificate
-  #     })
-  #     tf_vars_hcl = merge(local.globalops_backend_base.tf_vars_hcl, {
-  #       sensitive_inputs = "sensitive::sensitive_inputs"
-  #     })
-  #     sensitive_inputs = merge(local.globalops_backend_base.sensitive_inputs, {
-  #       kube_token = sensitive(local.cloud_clusters_k8s[cluster_id].kube_token)
-  #       sensitive_inputs = replace(jsonencode(merge({
-  #         "sops-gpg"                                 = try(gpg_private_key.cluster_keys[cluster_id].private_key, "")
-  #         "${local.globalops_base.name}_private_key" = sensitive(tls_private_key.cluster_keys[cluster_id].private_key_pem)
-  #         "${local.globalops_base.name}_vcs_token"   = sensitive(var.vcs_write_token[var.vcs_default_provider])
-  #         }, merge([for id, repo in local.namespaces_repos_ops :
-  #           {
-  #             "${repo.name}_private_key" = sensitive(tls_private_key.ns_keys["${id}_${cluster_id}"].private_key_pem)
-  #             "${repo.name}_vcs_token"   = sensitive(var.vcs_write_token[repo.vcs.provider])
-  #           } if contains(repo._namespace.environments, cluster._env.id)
-  #         ]...)
-  #       )), "/(\".*?\"):/", "$1 = ") # https://brendanthompson.com/til/2021/3/hcl-enabled-tfe-variables
-  #     })
-  #   }) if cluster.bootstrap
-  # }
-
-  # globalops_status_checks = [for backend in local.globalops_backends :
-  #   format(local.backend_provider_config[backend.provider].status_check_format, backend.name)
-  # ]
-
-  # globalops_vcs_files_prepare = merge(
-  #   lookup(local.dev, "all_files_strict", false) ? null : local.gitops.repo_files,
-  #   lookup(local.dev, "all_files_strict", false) ? null : local.vcs_config[var.vcs_default_provider].files
-  # )
-
-  # globalops_vcs_files_formatted = { for file_path, content in local.globalops_vcs_files_prepare :
-  #   (file_path) => try(join("\n", concat(
-  #     compact([lookup(local.globalops_vcs_base.file_templates, "${trimprefix(regex("/?[^/^]+$", lower(file_path)), "/")}_header", "")]),
-  #     content,
-  #     compact([lookup(local.globalops_vcs_base.file_templates, "${trimprefix(regex("/?[^/^]+$", lower(file_path)), "/")}_footer", "")])
-  #   )), content)
-  # }
-
-  # # Add template files if a local template was used
-  # globalops_vcs_files = merge(
-  #   lookup(local.dev, "all_files_strict", false) ? null : lookup(local.vcs_templates_files, "globalops", null),
-  #   local.globalops_vcs_files_formatted
-  # )
-
-  # globalops_vcs_files_strict_prepare = merge(
-  #   lookup(local.dev, "all_files_strict", false) ? local.vcs_config[var.vcs_default_provider].files : null,
-  #   lookup(local.dev, "all_files_strict", false) ? local.gitops.repo_files : null,
-  #   local.gitops.repo_system_files,
-  #   local.vcs_config[var.vcs_default_provider].files_strict
-  # )
-
-  # globalops_vcs_files_strict_formatted = { for file_path, content in local.globalops_vcs_files_strict_prepare :
-  #   (file_path) => try(join("\n", concat(
-  #     compact([lookup(local.globalops_vcs_base.file_templates, "${trimprefix(regex("/?[^/^]+$", lower(file_path)), "/")}_header", "")]),
-  #     content,
-  #     compact([lookup(local.globalops_vcs_base.file_templates, "${trimprefix(regex("/?[^/^]+$", lower(file_path)), "/")}_footer", "")])
-  #   )), content)
-  # }
-
-  # # Add template files if a local template was used
-  # globalops_vcs_files_strict = merge(
-  #   lookup(local.dev, "all_files_strict", false) ? lookup(local.vcs_templates_files, "globalops", null) : null,
-  #   local.globalops_vcs_files_strict_formatted
-  # )
-
-  # globalops_vcs_deploy_keys = merge(
-  #   {
-  #     _ci = {
-  #       title    = "CI / GitHub Actions (${local.globalops_base.name})"
-  #       ssh_key  = tls_private_key.ci_keys["_globalops"].public_key_openssh
-  #       readonly = true
-  #     }
-  #   },
-  #   { for id, cluster in local.environments_clusters :
-  #     (id) => {
-  #       title    = cluster.name
-  #       ssh_key  = tls_private_key.cluster_keys[id].public_key_openssh
-  #       readonly = true
-  #     }
-  # })
-
-  # globalops_vcs_repo_secrets = merge(
-  #   local.vcs_config[var.vcs_default_provider].repo_secrets,
-  #   {
-  #     ci_sensitive_inputs = "sensitive::ci_sensitive_inputs"
-  #     ci_init_path        = "${local.globalops_gitops_base.infra_dir}/_local"
-  #   }
-  # )
-
-  # globalops_vcs_sensitive_inputs = merge(
-  #   local.vcs_config[var.vcs_default_provider].sensitive_inputs,
-  #   {
-  #     ci_sensitive_inputs = jsonencode({
-  #       sensitive_inputs = local.globalops_gitops_local_sensitive_inputs
-  #     })
-  # })
-
-  # globalops_gitops_local_sensitive_inputs = merge(
-  #   { "${local.globalops_base.name}_private_key" = sensitive(tls_private_key.ci_keys["_globalops"].private_key_pem) },
-  #   { for id, repo in local.namespaces_repos_ops :
-  #     "${repo.name}_private_key" => sensitive(tls_private_key.ci_keys[id].private_key_pem)
-  #   }
-  # )
-
-  # globalops_gitops_local_vars_template = jsonencode({
-  #   cluster_path = try("./${values(local.environments)[0].name}/${values(values(local.environments)[0].clusters)[0].name}/${local.globalops_gitops_base.base_dir}", "./${local.globalops_gitops_base.base_dir}")
-  #   sensitive_inputs = merge({ for k in keys(local.globalops_gitops_local_sensitive_inputs) :
-  #     k => ""
-  #   })
-  # })
-
-  # globalops_gitops_deploy_keys = { for cluster_id, cluster in merge(local.environments_clusters, { _ci = { name = "_ci" } }) :
-  #   (cluster.name) => merge(
-  #     {
-  #       "globalops" = {
-  #         name        = "flux-system"
-  #         namespace   = "flux-system"
-  #         known_hosts = local.vcs_provider_config[var.vcs_default_provider].known_hosts
-  #         public_key  = base64encode(cluster.name == "_ci" ? tls_private_key.ci_keys["_globalops"].public_key_pem : tls_private_key.cluster_keys[cluster_id].public_key_pem)
-  #         private_key = "sensitive::${local.globalops_base.name}_private_key"
-  #       }
-  #     },
-  #     { for repo_id, repo in local.namespaces_repos_ops :
-  #       repo_id => {
-  #         name        = "flux-${repo.name}"
-  #         namespace   = repo._namespace.name
-  #         known_hosts = local.vcs_provider_config[repo.vcs.provider].known_hosts
-  #         public_key  = base64encode(cluster.name == "_ci" ? tls_private_key.ci_keys[repo_id].public_key_pem : tls_private_key.ns_keys["${repo_id}_${cluster_id}"].public_key_pem)
-  #         private_key = "sensitive::${repo.name}_private_key"
-  #       } if cluster.name == "_ci" || try(contains(repo._namespace.environments, cluster._env.id), false)
-  #   })
-  # }
-
-  # globalops_gitops_secrets = { for cluster_id, cluster in local.environments_clusters :
-  #   (cluster.name) => merge({
-  #     sops = {
-  #       name      = "sops-gpg"
-  #       namespace = "flux-system"
-  #       data      = { "sops.asc" = "sensitive::sops-gpg" }
-  #     }
-  #     globalops_vcs_token = {
-  #       name      = "vcs-token"
-  #       namespace = "flux-system"
-  #       data      = { token = "sensitive::${local.globalops_base.name}_vcs_token" }
-  #     }
-  #     }, { for repo_id, repo in local.namespaces_repos_ops :
-  #     "${repo_id}_vcs_token" => {
-  #       name      = "vcs-token-${replace(repo.name, "/[\\s_\\.]/", "-")}"
-  #       namespace = "flux-system"
-  #       data      = { token = "sensitive::${repo.name}_vcs_token" }
-  #     } if contains(repo._namespace.environments, cluster._env.id)
-  #   })
-  # }
 }

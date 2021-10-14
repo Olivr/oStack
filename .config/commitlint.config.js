@@ -33,6 +33,11 @@ const scopeValidationLevel = allowCustomScopes ? 1 : 2;
 module.exports = {
   extends: ["@commitlint/config-conventional"],
 
+  ignores: [
+    (message) => /^((F|f)ixup|(S|s)quash)!/.test(message),
+    (message) => /^(R|r)evert (.*)/.test(message),
+  ],
+
   // Add your own rules. See https://commitlint.js.org/#/reference-rules
   rules: {
     "scope-enum": [scopeValidationLevel, "always", validScopes],

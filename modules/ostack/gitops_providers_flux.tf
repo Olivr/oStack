@@ -15,7 +15,6 @@ module "gitops_flux" {
   environments           = local.globalops_gitops_create.environments
   infra_dir              = local.globalops_gitops_create.infra_dir
   init_cluster           = local.globalops_gitops_create.init_cluster
-  local_var_template     = local.globalops_gitops_local_vars_template
   overlay_dir            = local.globalops_gitops_create.overlay_dir
   repo_ssh_url           = local.globalops_vcs_create.repo_ssh_url
   secrets                = local.globalops_gitops_secrets

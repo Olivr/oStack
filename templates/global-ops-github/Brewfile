@@ -1,0 +1,12 @@
+tap "fluxcd/tap"
+tap "tilt-dev/tap"
+
+brew "fluxcd/tap/flux"
+brew "gh"
+brew "gnupg"
+brew "kind"
+brew "kubernetes-cli"
+brew "sops"
+brew "terraform"
+brew "tilt-dev/tap/ctlptl"
+brew "yq"

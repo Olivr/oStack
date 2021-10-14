@@ -4,33 +4,48 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+env:
+  IMPORT_KEYS_DIR: "./tools/keys"
+  FORCE_INSTALL: 1
+  FORCE_VERIFY_DOWNLOAD: 1
 
 jobs:
+  # ---------------------------------------------------------------------------------------------------------------------
+  # Dynamic matrix
+  # Compute how subsequent jobs will run in parallel
+  # ---------------------------------------------------------------------------------------------------------------------
   matrix:
     name: Generate modules matrix
     runs-on: ubuntu-latest
     outputs:
       modules: ${{ steps.modules.outputs.matrix }}
-      examples: ${{ steps.examples.outputs.matrix }}
+      templates: ${{ steps.templates.outputs.matrix }}
     steps:
       - uses: actions/checkout@v2
 
       - id: modules
-        run: echo "::set-output name=matrix::[$(modules=($(ls modules)); printf '"%s",' "${modules[@]}")]"
+        name: Get Terraform modules for integration testing
+        run: echo "::set-output name=matrix::[$(matrix=($(ls -d modules/*/)); printf '"%s",' "${matrix[@]}")]"
 
-      - id: examples
-        run: echo "::set-output name=matrix::[$(examples=($(ls examples/*.tf | sed -E 's`^examples/(.*)\.tf$`\1`')); printf '"%s",' "${examples[@]}")]"
+      - id: templates
+        name: Get Terraform modules/templates for unit testing
+        run: echo "::set-output name=matrix::[$(matrix=($(ls -d templates/*/)); printf '"%s",' "${matrix[@]}")]"
 
-  unit:
-    name: Unit test ${{ matrix.path }}
+  # ---------------------------------------------------------------------------------------------------------------------
+  # Unit testing
+  # Static code analysis, linting, security scanning, dry-runs
+  # No real resources are deployed
+  # ---------------------------------------------------------------------------------------------------------------------
+  unit-modules:
+    name: Unit test
     needs: matrix
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         path: ${{fromJSON(needs.matrix.outputs.modules)}}
-      fail-fast: false
     env:
-      path: modules/${{ matrix.path }}
+      DIR: ${{ matrix.path }}
 
     steps:
       - name: Checkout repo
@@ -39,71 +54,69 @@ jobs:
           fetch-depth: 2
 
       - if: github.event_name == 'pull_request'
-        name: Check if ${{ env.path }} should be tested
         id: changed
-        uses: marceloprado/has-changed-path@v1
-        with:
-          paths: ${{ env.path }}
+        continue-on-error: true
+        name: Check if ${{ matrix.path }} has changed
+        run: "! git diff --quiet HEAD~1 HEAD -- $DIR"
 
-      - if: github.event_name == 'push' || steps.changed.outputs.changed == 'true'
-        name: Setup Terraform
-        uses: hashicorp/setup-terraform@v1
+      - if: github.event_name == 'push' || steps.changed.outcome == 'success'
+        name: Validate Terraform configuration files
+        run: ./tools/tfvalidate.sh $DIR
 
-      - if: github.event_name == 'push' || steps.changed.outputs.changed == 'true'
-        name: Check Terraform format
-        run: terraform fmt -check -recursive
-        working-directory: ${{ env.path }}
-
-      - if: github.event_name == 'push' || steps.changed.outputs.changed == 'true'
-        name: Initialize Terraform
-        run: terraform init
-        working-directory: ${{ env.path }}
-
-      - if: github.event_name == 'push' || steps.changed.outputs.changed == 'true'
-        name: Validate Terraform config
-        run: terraform validate
-        working-directory: ${{ env.path }}
-
-      - if: github.event_name == 'push' || steps.changed.outputs.changed == 'true'
-        name: Setup TFLint
-        uses: terraform-linters/setup-tflint@v1
-        with:
-          github_token: ${{ github.token }}
-
-      - if: github.event_name == 'push' || steps.changed.outputs.changed == 'true'
-        name: Init TFLint
-        run: tflint --init --config=../../.config/.tflint.hcl
-        working-directory: ${{ env.path }}
-
-      - if: github.event_name == 'push' || steps.changed.outputs.changed == 'true'
-        name: Run TFLint
-        run: tflint --format=compact --config=../../.config/.tflint.hcl
-        working-directory: ${{ env.path }}
-
-      - if: github.event_name == 'push' || steps.changed.outputs.changed == 'true'
-        id: tfsec
-        name: Terraform security scan
-        run: docker run -v "$(pwd):/src" tfsec/tfsec /src/${{ env.path }}
-
-      # - if: github.event_name == 'push' || steps.changed.outputs.changed == 'true'
-      #   name: Run checkov
-      #   run: docker run -v "$(pwd):/src" bridgecrew/checkov -d /src/${{ env.path }} --config-file /src/.config/.checkov.yaml --compact
-
-  e2e:
-    name: e2e test ${{ matrix.test_case }}
-    if: github.event_name == 'push' || (github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]')
-    needs: [matrix, unit]
+  unit-templates:
+    name: Unit test
+    needs: matrix
     runs-on: ubuntu-latest
     strategy:
-      matrix:
-        test_case: ${{fromJSON(needs.matrix.outputs.examples)}}
       fail-fast: false
+      matrix:
+        path: ${{fromJSON(needs.matrix.outputs.templates)}}
     env:
-      TF_VAR_organization_name: ${{ secrets.CI_GITHUB_OWNER }}
-      TF_VAR_cloud_default_provider: linode
-      TF_VAR_tfe_oauth_token_id: ${{ secrets.CI_TFE_OAUTH_TOKEN_ID }}
-      TF_VAR_vcs_write_token: '{ github="${{ secrets.CI_GITHUB_TOKEN }}" }'
-      TF_VAR_sensitive_inputs: '{ my_other_secret = "This is marked as sensitive" }'
+      DIR: ${{ matrix.path }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+
+      - if: github.event_name == 'pull_request'
+        id: changed
+        continue-on-error: true
+        name: Check if ${{ matrix.path }} has changed
+        run: "! git diff --quiet HEAD~1 HEAD -- $DIR"
+
+      - if: (github.event_name == 'push' || steps.changed.outcome == 'success') && contains(matrix.path, '-ops')
+        name: Validate Kubernetes configuration files
+        run: ./tools/kubevalidate.sh $DIR
+
+      - if: (github.event_name == 'push' || steps.changed.outcome == 'success') && contains(matrix.path, '-infra')
+        name: Validate Terraform configuration files
+        run: ./tools/tfvalidate.sh $DIR
+        env:
+          SKIP_TERRAFORM_VALIDATE: 1
+
+  # ---------------------------------------------------------------------------------------------------------------------
+  # Integration testing
+  # Real resources are deployed
+  # Doesn't run for PRs from forked repositories for security reasons
+  # ---------------------------------------------------------------------------------------------------------------------
+  integration:
+    name: Integration test
+    if: github.event_name == 'push' || (github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]')
+    needs: matrix
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        path: ${{fromJSON(needs.matrix.outputs.modules)}}
+    env:
+      DIR: ${{ matrix.path }}
+      # TF_VAR_organization_name: ${{ secrets.CI_GITHUB_OWNER }}
+      # TF_VAR_cloud_default_provider: linode
+      # TF_VAR_tfe_oauth_token_id: ${{ secrets.CI_TFE_OAUTH_TOKEN_ID }}
+      # TF_VAR_vcs_write_token: '{ github="${{ secrets.CI_GITHUB_TOKEN }}" }'
+      # TF_VAR_sensitive_inputs: '{ my_other_secret = "This is marked as sensitive" }'
       GITHUB_TOKEN: ${{ secrets.CI_GITHUB_TOKEN }}
       GITHUB_OWNER: ${{ secrets.CI_GITHUB_OWNER }}
       LINODE_TOKEN: ${{ secrets.CI_LINODE_TOKEN }}
@@ -113,57 +126,67 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v1
+      - name: Test Terraform module
+        run: ./tools/tftest.sh $DIR
 
-      - name: Prepare test case
-        run: TEST_NAME=$(sed -E 's`[^a-z0-9]``g' <<< "${{ matrix.test_case }}"); cp -a examples/common/. . && cat "examples/${{ matrix.test_case }}.tf" | sed 's`Olivr/oStack/oStack`./modules/ostack`g' | sed 's`version\s*=\s*".*$`dev_mode = {}\n prefix = "'"${TEST_NAME:0:9}"'-"`' | sed 's`repo_archive_on_destroy\s*=.*$`repo_archive_on_destroy = false\nrepo_private = false`' > main.tf
+  # ---------------------------------------------------------------------------------------------------------------------
+  # Finalizers
+  # These are used to determine how successful was each test suite
+  # It simplifies management of required status checks
+  # ---------------------------------------------------------------------------------------------------------------------
+  unit-finalizer:
+    name: Passed all unit tests
+    if: always()
+    runs-on: ubuntu-latest
+    needs: [unit-modules, unit-templates]
+    steps:
+      - name: All tests passed successfully ✅
+        if: needs.unit-modules.result == 'success' && needs.unit-templates.result == 'success'
+        run: exit 0
 
-      - name: Initialize Terraform
-        run: terraform init
+      - name: Some tests failed ❌
+        if: needs.unit-modules.result != 'success' || needs.unit-templates.result != 'success'
+        run: exit 1
 
-      - name: Validate Terraform config
-        run: terraform validate
+  integration-finalizer:
+    name: Passed all integration tests
+    if: always()
+    runs-on: ubuntu-latest
+    needs: integration
+    steps:
+      - name: All tests passed successfully ✅
+        if: needs.integration.result == 'success'
+        run: exit 0
 
-      - name: Terraform security scan
-        run: docker run -v "$(pwd):/src" tfsec/tfsec /src
+      - name: Integration testing was skipped
+        if: needs.integration.result == 'skipped'
+        run: exit 0
 
-      - name: Run Terraform plan
-        run: terraform plan -input=false -out tf.plan
+      - name: Some tests failed ❌
+        if: needs.integration.result != 'success' && needs.integration.result != 'skipped'
+        run: exit 1
 
-      - name: Convert Terraform plan to JSON
-        run: terraform show -json tf.plan > tf.plan.json
-
-      - name: Prettify JSON plan to get meaningful errors in checkov
-        # A weird GH actions bug injects actions metadata in the output so we filter only the lines containing JSON
-        run: grep '^{"' tf.plan.json | jq '.' > tf.plan.pretty.json
-
-      - name: Remove extraneous plan files
-        run: rm -rf tf.plan.json
-
-      - name: Run checkov
-        run: docker run -v "$(pwd):/src" bridgecrew/checkov -d /src --config-file /src/.config/.checkov.yaml --repo-root-for-plan-enrichment /src
-
-      - name: Apply Terraform
-        run: terraform apply -auto-approve tf.plan
-
-      - name: Destroy Terraform
-        if: always()
-        run: terraform destroy -auto-approve
-      # - name: Run tests
-      #   run: terraform test
+  e2e-finalizer:
+    name: Passed all end-to-end tests
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: E2E testing is part of integration testing
+        run: exit 0
 
   finalizer:
     name: Passed all CI tests
     if: always()
     runs-on: ubuntu-latest
-    needs: [unit, e2e]
+    needs: [unit-finalizer, integration-finalizer, e2e-finalizer]
     steps:
       - name: All tests passed successfully ✅
-        if: needs.unit.result == 'success' && (needs.e2e.result == 'success' || needs.e2e.result == 'skipped')
+        if: needs.unit-finalizer.result == 'success' && needs.integration-finalizer.result == 'success' && needs.e2e-finalizer.result == 'success'
         run: exit 0
 
       - name: Some tests failed ❌
-        if: needs.unit.result != 'success' || (needs.e2e.result != 'success' && needs.e2e.result != 'skipped')
+        if: needs.unit-finalizer.result != 'success' || needs.integration-finalizer.result != 'success' || needs.e2e-finalizer.result != 'success'
         run: exit 1

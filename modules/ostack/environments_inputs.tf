@@ -82,4 +82,30 @@ variable "environments" {
       ]
     ))
   }
+
+  validation {
+    error_message = "Environment names must be unique."
+    condition = length(distinct([for id, env in var.environments :
+      lookup(env, "name", null) != null && lookup(env, "name", "") != "" ? env.name : lower(trim(replace(replace(id, "/[\\s_\\.]/", "-"), "/[^a-zA-Z0-9-]/", ""), "-"))
+    ])) == length(keys(var.environments))
+  }
+
+  validation {
+    error_message = "Cluster names must be unique."
+    condition = length(distinct(flatten([for id, env in var.environments :
+      [for cluster_id, cluster in try(env.clusters, {}) :
+        lookup(cluster, "name", null) != null && lookup(cluster, "name", "") != "" ? (
+          cluster.name
+          ) : (
+          lower(replace(replace("${(
+            lookup(env, "name", null) != null && lookup(env, "name", "") != "" ? env.name : lower(trim(replace(replace(id, "/[\\s_\\.]/", "-"), "/[^a-zA-Z0-9-]/", ""), "-"))
+          )}_${cluster_id}", "/[ _]/", "-"), "/[^a-zA-Z0-9-]/", ""))
+        )
+      ]
+      ]))) == length(flatten(
+      [for env in values(var.environments) :
+        try(keys(env.clusters), [])
+      ]
+    ))
+  }
 }

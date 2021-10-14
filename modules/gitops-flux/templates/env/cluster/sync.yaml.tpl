@@ -9,7 +9,7 @@ spec:
   sourceRef:
     kind: GitRepository
     name: "flux-system"
-  path: ./${env}/${name}/_overlays
+  path: ./${overlay_path}
   prune: true
   validation: client
   decryption:

@@ -27,6 +27,7 @@ yarn-error.log*
 
 # Temp files
 tf.plan.pretty.json
+plan*.json
 
 # Crash log files
 crash.log
@@ -37,7 +38,10 @@ crash.log
 # to change depending on the environment.
 #
 *.tfvars
-!config.auto.tfvars
+*.tfvars.json
+!*.test.tfvars
+!*.test.tfvars.json
+!*.local.auto.tfvars
 
 # Ignore override files as they are usually used to override resources locally and so
 # are not checked in

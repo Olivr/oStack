@@ -89,13 +89,13 @@ locals {
       vcs_write_token = "sensitive::vcs_write_token"
     }
     file_templates = {
-      codeowners_header = <<-EOT
+      codeowners_header    = <<-EOT
       ##
       # ${local.i18n.file_template_header_1}
       # ${local.i18n.file_template_header_2}
       ##
       EOT
-      codeowners_footer = ""
+      "ostack.yaml_header" = "# This configuration file can be used by tools that work with oStack"
     }
   }
 

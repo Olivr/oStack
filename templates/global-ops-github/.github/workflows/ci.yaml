@@ -9,18 +9,26 @@ jobs:
     name: Generate e2e test matrix
     runs-on: ubuntu-latest
     outputs:
-      clusters: ${{ steps.clusters.outputs.matrix }}
+      clusters: ${{ steps.config.outputs.clusters }}
+      system_folder: ${{ steps.config.outputs.system_folder }}
+      bootstrap_path: ${{ steps.config.outputs.bootstrap_path }}
     steps:
       - uses: actions/checkout@v2
-      - id: clusters
-        run: echo "::set-output name=matrix::[$(clusters=($(find */* -type d | grep -v -E '(/_|^_)')); printf '"%s",' "${clusters[@]}")]"
+      - id: config
+        run: |
+          echo "::set-output name=clusters::[$(clusters=($(yq e '.clusters[][]' .config/oStack.yaml)); printf '"%s",' "${clusters[@]}")]"
+          echo "::set-output name=system_folder::$(yq e '.system_folder' .config/oStack.yaml)"
+          echo "::set-output name=bootstrap_path::$(yq e '.bootstrap_path' .config/oStack.yaml)"
 
   e2e:
     name: Run e2e tests
     runs-on: ubuntu-latest
     needs: [matrix]
     env:
-      ci-branch: ci/${{ github.head_ref }}/${{ matrix.path }}
+      BASE_BRANCH: ${{ github.base_ref }}
+      CI_BRANCH: ci/${{ github.head_ref }}/${{ matrix.path }}
+      GOTK_SYNC: ${{ needs.matrix.outputs.system_folder }}/flux-system/gotk-sync.yaml
+      BOOTSTRAP_PATH: ${{ needs.matrix.outputs.bootstrap_path }}/_ci
     strategy:
       matrix:
         path: ${{fromJSON(needs.matrix.outputs.clusters)}}
@@ -31,48 +39,43 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Make flux-system use the CI branch (fails if flux-system is not currently setup to use ${{ github.base_ref }})
-        run: |
-          cat '${{ secrets.ci_init_path }}/../../flux-system/gotk-sync.yaml' | grep 'branch: ${{ github.base_ref }}'
-          sed -i 's`branch: ${{ github.base_ref }}`branch: ${{ env.ci-branch }}`g' '${{ secrets.ci_init_path }}/../../flux-system/gotk-sync.yaml'
-          cat '${{ secrets.ci_init_path }}/../../flux-system/gotk-sync.yaml'
+      - name: Make flux-system use the CI branch (fails if flux-system is not setup to use ${{ env.BASE_BRANCH }})
+        run: 'sed -i "s|branch: $BASE_BRANCH|branch: $CI_BRANCH|g" "$GOTK_SYNC"'
 
       - name: Publish CI branch
         run: |
-          git checkout -b ${{ env.ci-branch }}
-          git add '${{ secrets.ci_init_path }}/../../flux-system/gotk-sync.yaml'
+          git switch -c $CI_BRANCH
+          git add "$GOTK_SYNC"
           git config user.email "actions@github.com"
           git config user.name "Github Actions"
-          git commit -m"Use of CI branch"
-          git push --force -u origin ${{ env.ci-branch }}
+          git commit -m"CI branch"
+          git push --force -u origin $CI_BRANCH
 
       - name: Setup Kubernetes
         uses: helm/kind-action@v1.2.0
 
       - name: Prepare Terraform variables
-        working-directory: ${{ secrets.ci_init_path }}
+        working-directory: ${{ env.BOOTSTRAP_PATH }}
         run: |
           cat >terraform.tfvars.json <<EOF
           ${{ secrets.ci_sensitive_inputs }}
           EOF
 
       - name: Initialize Terraform
-        run: terraform init
-        working-directory: ${{ secrets.ci_init_path }}
+        run: terraform -chdir="$BOOTSTRAP_PATH" init
 
       - name: Bootstrap CI cluster
-        run: terraform apply --auto-approve
-        working-directory: ${{ secrets.ci_init_path }}
+        run: terraform -chdir="$BOOTSTRAP_PATH" apply --auto-approve
         env:
-          TF_VAR_cluster_path: ${{ matrix.path }}/_ostack
+          TF_VAR_cluster_path: ${{ matrix.path }}/${{ needs.matrix.outputs.system_folder }}
 
       - name: Verify oStack generated cluster reconciliation
         run: |
           kubectl wait --for=condition=ready --timeout=2m -n flux-system kustomization/flux-system
           kubectl wait --for=condition=ready --timeout=1m -n flux-system kustomization/kyverno
           kubectl wait --for=condition=ready --timeout=1m -n flux-system kustomization/kyverno-policies
-          kubectl wait --for=condition=ready --timeout=1m -n flux-system kustomization/$(echo "${{ matrix.path }}" | sed -E 's`^([^/]+)/(.+)$`\1`g')-tenants
-          kubectl wait --for=condition=ready --timeout=1m -n flux-system kustomization/$(echo "${{ matrix.path }}" | sed -E 's`^([^/]+)/(.+)$`\2`g')
+          kubectl wait --for=condition=ready --timeout=1m -n flux-system kustomization/$(cut -d/ -f2 <<< "${{ matrix.path }}")-tenants
+          kubectl wait --for=condition=ready --timeout=1m -n flux-system kustomization/$(cut -d/ -f4 <<< "${{ matrix.path }}")
 
       - name: Verify all found kustomizations
         run: kubectl get kustomizations -A -o json | jq ".items[].metadata | [.name, .namespace] | @csv" -r | sed -E 's`^"([^"]+)","([^"]+)"`\2 kustomization/\1`g' |  xargs -I {} sh -c "kubectl wait --for=condition=ready --timeout=1m -n {}"
@@ -99,7 +102,7 @@ jobs:
 
       - name: Clean up
         if: always()
-        run: git push origin --delete ${{ env.ci-branch }}
+        run: git push origin --delete $CI_BRANCH
 
   finalizer:
     name: Passed all CI tests

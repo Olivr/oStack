@@ -5,8 +5,14 @@
 variable "tenants" {
   description = "Tenants and their repos."
   type = map(object({
-    name         = string
-    environments = set(string)
+    name             = string
+    environments     = set(string)
+    tenant_isolation = bool
+    gpg_keys = map(object({
+      name        = string
+      fingerprint = string
+      public_key  = string
+    }))
     repos = map(object({
       name = string
       type = string
@@ -42,6 +48,11 @@ variable "repo_ssh_url" {
   }
 }
 
+variable "commit_status_http_url" {
+  description = "HTTP URL of the repository."
+  type        = string
+}
+
 # ---------------------------------------------------------------------------------------------------------------------
 # Optional inputs
 # These parameters have reasonable defaults.
@@ -59,13 +70,7 @@ variable "branch_name" {
 variable "commit_status_provider" {
   description = "Name of the VCS provider (used to define if Flux can send commit statuses)."
   type        = string
-  default     = null
-}
-
-variable "commit_status_http_url" {
-  description = "HTTP URL of the repository."
-  type        = string
-  default     = null
+  default     = "github"
 }
 
 variable "system_dir" {
@@ -118,6 +123,26 @@ variable "tenants_dir" {
   }
 }
 
+variable "clusters_dir" {
+  description = "Name of the tenants directory."
+  type        = string
+  default     = "clusters"
+  validation {
+    condition     = var.clusters_dir != null
+    error_message = "You must specify a the name of the clusters directory."
+  }
+}
+
+variable "environments_dir" {
+  description = "Name of the tenants directory."
+  type        = string
+  default     = "environments"
+  validation {
+    condition     = var.environments_dir != null
+    error_message = "You must specify a the name of the environments directory."
+  }
+}
+
 variable "cluster_init_path" {
   description = "Path to the cluster init module directory if you'd rather use an inline module rather than an external one."
   type        = string
@@ -137,16 +162,6 @@ variable "init_cluster" {
   validation {
     condition     = var.init_cluster != null && var.init_cluster.module_source != null
     error_message = "You must specify a module source. If you want to use a local module, you should specify `cluster_init_path` instead and leave this with the defaults."
-  }
-}
-
-variable "local_var_template" {
-  description = "JSON Terraform variables template with empty values."
-  type        = string
-  default     = ""
-  validation {
-    condition     = var.local_var_template != null
-    error_message = "Variable local_var_template cannot be null, use an empty value instead."
   }
 }
 
