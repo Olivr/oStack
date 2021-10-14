@@ -173,7 +173,7 @@ locals {
   vcs_provider_config_dev_mode = { for provider, default_settings in local.vcs_provider_config_defaults :
     provider => {
       repo_templates = merge(default_settings.repo_templates, { for id, template in local.dev :
-        replace(id, "/^template_/", "") => can(regex("^\\.", template)) ? "Olivr/ostack-dev" : template if can(regex("^template_", id))
+        replace(id, "/^template_/", "") => can(regex("^\\.", template)) ? null : template if can(regex("^template_", id))
       })
     }
   }

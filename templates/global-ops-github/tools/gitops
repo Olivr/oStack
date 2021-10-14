@@ -46,7 +46,6 @@ local_branch_name=$(git branch --show-current)
 
 if [[ -z $SYSTEM_DIR ]]; then
   if [[ -d "system" ]]; then SYSTEM_DIR="system"
-  elif [[ -d "_ostack" ]]; then SYSTEM_DIR="_ostack"
   else echo "[ERR] Cannot detect the system directory" & exit 1; fi
 fi
 
@@ -317,10 +316,22 @@ cleanup() {
 if [[ $action == "init" ]]; then
   path=$2
 
+  path_with_system="${path%/}/$SYSTEM_DIR"
+  if [[ $(basename "$path") != "$SYSTEM_DIR" && -d $path_with_system ]]; then
+    while true; do
+      read -rp "Did you mean $path_with_system? (y/n)" yn
+      case $yn in
+        [Yy]* ) path=$path_with_system; break;;
+        [Nn]* ) break;;
+        * ) echo "Please answer yes or no.";;
+      esac
+    done
+  fi
+
   if [[ -n $path ]]; then
     if [[ "$local_branch_name" == "$flux_branch_name" ]]; then
       while true; do
-        read -rp "This will destroy and recreate your dev cluster (if using kind), are you sure (y/n)?" yn
+        read -rp "This will destroy and recreate your dev cluster (if using kind), are you sure? (y/n)" yn
         case $yn in
           [Yy]* ) break;;
           [Nn]* ) exit;;
